@@ -177,3 +177,7 @@ with four stories and a question bank, which the sample doesn't include.
 - Mistake tracking from official practice tests, mapped back to the chunks that would have fixed each error.
 - A weekly dashboard joining SRS retention with practice-test accuracy.
 - An eval set of hand-checked pages to measure extraction accuracy per model.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
