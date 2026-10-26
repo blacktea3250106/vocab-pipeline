@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Word Vault</title>
+<style>
+:root {
+  --bg: #f6f5f2; --card: #fff; --ink: #1a1a1a; --ink-soft: #6b6b6b; --ink-faint: #9a978f;
+  --accent: #2a7a4f; --accent-soft: #e5f0ea; --accent-strong: #1e5e3d; --accent-light: #7fb69a;
+  --wrong: #c0392b; --wrong-soft: #fdeae7;
+  --gold: #b8860b; --gold-soft: #fef4d6;
+  --flame: #e07a2f; --idle: #e8e6df; --border: #e4e0d8;
+  --mono: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
+  --shadow: 0 1px 2px rgba(0,0,0,0.03), 0 3px 10px rgba(0,0,0,0.04);
+  --lv0: #b9b5ab; --lv1: var(--wrong); --lv2: var(--flame); --lv3: #4a6fa5; --lv4: var(--accent);
+}
+* { box-sizing: border-box; }
+body { font-family: -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif;
+  background: var(--bg); color: var(--ink); margin: 0; padding: 24px 20px 80px; line-height: 1.5; }
+.wrap { max-width: 900px; margin: 0 auto; }
+
+.topbar { display: flex; align-items: baseline; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.topbar h1 { margin: 0; font-size: 18px; color: var(--accent); letter-spacing: -0.2px; }
+.topbar .sub { color: var(--ink-faint); font-size: 12px; font-family: var(--mono); }
+.topbar .back { margin-left: auto; font-size: 12px; color: var(--ink-soft); text-decoration: none; }
+.topbar .back:hover { color: var(--accent); }
+
+section { background: var(--card); padding: 20px 22px; border-radius: 14px;
+  box-shadow: var(--shadow); margin-bottom: 14px; border: 1px solid var(--border); }
+section h2 { margin: 0 0 3px; font-size: 14px; font-weight: 700; }
+section .h2-sub { color: var(--ink-faint); font-size: 12px; margin-bottom: 14px; }
+
+/* ── level spread ── */
+.lv-bar { display: flex; height: 32px; border-radius: 8px; overflow: hidden;
+  border: 1px solid var(--border); background: var(--idle); margin-bottom: 8px; }
+.lv-seg { display: flex; align-items: center; justify-content: center; min-width: 0;
+  overflow: hidden; white-space: nowrap;
+  font-family: var(--mono); font-size: 11px; font-weight: 700; color: #fff; transition: flex-grow .4s; }
+/* a narrow segment cannot hold a label — the legend below carries the names */
+.lv-seg span { display: none; }
+.lv-legend { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 4px; }
+.lv-key { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ink-soft); }
+.lv-key i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.lv-key b { font-family: var(--mono); }
+.lv-seg.lv0, .lv-key i.lv0 { background: var(--lv0); }
+.lv-seg.lv1, .lv-key i.lv1 { background: var(--lv1); }
+.lv-seg.lv2, .lv-key i.lv2 { background: var(--lv2); }
+.lv-seg.lv3, .lv-key i.lv3 { background: var(--lv3); }
+.lv-seg.lv4, .lv-key i.lv4 { background: var(--lv4); }
+.lv-note { font-size: 12px; color: var(--ink-faint); }
+
+/* ── controls ── */
+.tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 14px 0 4px; }
+.tabs { display: flex; gap: 5px; flex-wrap: wrap; }
+.tab { font: inherit; font-size: 12px; padding: 5px 11px; border: 1px solid var(--border);
+  background: var(--card); color: var(--ink-soft); border-radius: 7px; cursor: pointer; font-weight: 600; }
+.tab:hover { background: #f3f1eb; }
+.tab.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+.tab small { font-family: var(--mono); font-size: 10.5px; opacity: .7; margin-left: 4px; }
+.search { flex: 1; min-width: 170px; font: inherit; font-size: 13px; padding: 7px 11px;
+  border: 1px solid var(--border); border-radius: 9px; background: var(--card); color: var(--ink); }
+.viewsw { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.viewsw button { font: inherit; font-size: 12px; padding: 6px 12px; border: 0; cursor: pointer;
+  background: var(--card); color: var(--ink-soft); font-weight: 600; }
+.viewsw button.on { background: var(--ink); color: #fff; }
+.cta { display: inline-flex; align-items: center; gap: 9px; background: var(--accent); color: #fff;
+  padding: 11px 19px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 14px;
+  border: 0; cursor: pointer; font-family: inherit; box-shadow: 0 2px 8px rgba(42,122,79,.25); }
+.cta:hover { background: var(--accent-strong); }
+.cta .cta-sub { font-weight: 400; opacity: .82; font-size: 12px; }
+
+/* ── card grid: the vault as a deck ── */
+.deck { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 10px; }
+.fc { perspective: 900px; cursor: pointer; }
+/* One fixed height for every card, so the deck stays a grid. Both faces share
+   a single grid cell — absolutely positioned faces give the parent no height at
+   all, which once collapsed every card to a sliver. A back with more to say
+   scrolls inside itself rather than growing or being cut off. */
+.fc-in { display: grid; height: 148px;
+  transition: transform .45s cubic-bezier(.22,.9,.28,1); transform-style: preserve-3d; }
+.fc.flip .fc-in { transform: rotateY(180deg); }
+.fc-f, .fc-b { grid-area: 1 / 1; position: relative; backface-visibility: hidden;
+  border: 1px solid var(--border); border-radius: 12px; padding: 13px 15px;
+  display: flex; flex-direction: column; background: var(--card); overflow: hidden; }
+.fc-b { transform: rotateY(180deg); background: #fbfaf7; }
+/* Scrollable only once turned over: an overflow container on a hidden face can
+   still take the wheel, which would scroll a card you cannot see. */
+.fc.flip .fc-b { overflow-y: auto; overscroll-behavior: contain; }
+.fc-b::-webkit-scrollbar { width: 5px; }
+.fc-b::-webkit-scrollbar-thumb { background: #d8d4ca; border-radius: 3px; }
+.fc-w { font-size: 17px; font-weight: 700; letter-spacing: -.01em; line-height: 1.25; }
+.fc-meta { display: flex; align-items: center; gap: 7px; margin-top: auto; flex: 0 0 auto; }
+.fc-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+.fc-dot.lv0 { background: var(--lv0); } .fc-dot.lv1 { background: var(--lv1); }
+.fc-dot.lv2 { background: var(--lv2); } .fc-dot.lv3 { background: var(--lv3); }
+.fc-dot.lv4 { background: var(--lv4); }
+.fc-lv { font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); }
+.fc-day { font-family: var(--mono); font-size: 10px; color: var(--ink-faint); margin-left: auto; }
+.fc-hint { font-size: 11px; color: var(--ink-faint); margin-top: 6px; }
+.fc-zh { font-size: 13px; color: var(--ink); }
+.fc-src { font-size: 11.5px; color: var(--ink-soft); line-height: 1.5; margin-top: 6px; }
+.fc-b .gl { padding: 2px 0; }
+.fc-b .gl-d, .fc-b .gl-pos { display: none; }
+.fc-src b { background: #fdf0a8; padding: 0 2px; border-radius: 2px; }
+.fc.stuck .fc-f { border-color: var(--wrong); }
+
+/* ── list view ── */
+.vw { background: #fbfaf7; border: 1px solid var(--border); border-radius: 11px;
+  padding: 10px 13px; margin-bottom: 7px; }
+.vw-h { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; cursor: pointer; }
+.vw-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+.vw-dot.lv0 { background: var(--lv0); } .vw-dot.lv1 { background: var(--lv1); }
+.vw-dot.lv2 { background: var(--lv2); } .vw-dot.lv3 { background: var(--lv3); }
+.vw-dot.lv4 { background: var(--lv4); }
+.vw-w { font-size: 15px; font-weight: 700; }
+.vw-lv { font-size: 11px; color: var(--ink-faint); font-family: var(--mono); }
+.vw-leech { font-size: 10.5px; font-weight: 700; color: var(--wrong);
+  background: var(--wrong-soft); border-radius: 4px; padding: 1px 6px; }
+.vw-d { font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint);
+  border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; margin-left: auto; }
+.vw-body { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); }
+.vw.open .vw-body { display: block; }
+.vw-src { font-size: 13px; line-height: 1.6; }
+.vw-src b { background: #fdf0a8; padding: 0 2px; border-radius: 2px; font-weight: 600; }
+.vw-zh { color: var(--ink-faint); font-size: 12.5px; margin-top: 3px; }
+
+/* ── review ── */
+.rv { background: var(--card); border: 1px solid var(--accent); border-radius: 14px;
+  padding: 30px 28px; }
+.rv-top { display: flex; align-items: baseline; gap: 12px; margin-bottom: 18px; }
+.rv-n { font-family: var(--mono); font-size: 12px; color: var(--ink-faint); }
+.rv-track { flex: 1; height: 5px; background: var(--idle); border-radius: 3px; overflow: hidden; }
+.rv-fill { display: block; height: 100%; background: var(--accent); transition: width .3s; }
+.rv-word { font-size: 32px; font-weight: 700; letter-spacing: -.02em; margin-bottom: 14px; }
+.rv-cloze { font-size: 15px; line-height: 1.7; }
+.rv-cloze u { text-decoration: none; border-bottom: 2px solid var(--flame); padding: 0 16px; }
+.rv-zh { color: var(--ink-soft); font-size: 14px; margin-top: 10px; }
+.rv-hint { color: var(--ink-faint); font-size: 12.5px; margin-top: 16px; }
+.rv-btns { display: flex; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
+.b { font: inherit; font-size: 13.5px; font-weight: 600; padding: 10px 20px; border-radius: 9px;
+  border: 1px solid var(--border); background: var(--card); color: var(--ink); cursor: pointer; }
+.b.pri { background: var(--accent); border-color: var(--accent); color: #fff; }
+.b.no { border-color: var(--wrong); color: var(--wrong); }
+.b.mid { border-color: var(--flame); color: var(--flame); }
+.b.yes { border-color: var(--accent); color: var(--accent); }
+.b.ghost { color: var(--ink-faint); }
+
+/* the word is the control: dotted underline says "this does something",
+   without turning it into a button that competes with the card */
+.say { cursor: pointer; border-bottom: 1.5px dotted var(--ink-faint);
+  transition: color .12s, border-color .12s; }
+.say:hover { color: var(--accent); border-bottom-color: var(--accent); }
+.say.on { color: var(--accent); border-bottom-style: solid; border-bottom-color: var(--accent); }
+.say::after { content: " ▸"; font-size: .72em; opacity: .45; vertical-align: 1px; }
+.say:hover::after, .say.on::after { opacity: 1; }
+
+/* Hover reveals it on a pointer device; touch has no hover, so it is simply
+   always there, dimmed rather than hidden. */
+.del { position: absolute; top: 8px; right: 8px; z-index: 2;
+  font: inherit; font-size: 12px; line-height: 1; width: 24px; height: 24px; padding: 0;
+  border: 1px solid transparent; border-radius: 6px; background: transparent;
+  color: var(--ink-faint); cursor: pointer; opacity: 0; transition: opacity .12s; }
+.del.inline { position: static; opacity: .35; margin-left: 4px; }
+.fc:hover .del, .vw:hover .del { opacity: .55; }
+.del:hover, .del:focus-visible { opacity: 1; color: var(--wrong);
+  border-color: var(--wrong); background: var(--wrong-soft); }
+@media (hover: none) { .del { opacity: .4; } }
+
+.undo { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(80px);
+  display: flex; align-items: center; gap: 14px; background: var(--ink); color: #fff;
+  padding: 11px 16px; border-radius: 11px; font-size: 13px; opacity: 0;
+  transition: transform .25s cubic-bezier(.22,.9,.28,1), opacity .25s; pointer-events: none;
+  box-shadow: 0 6px 22px rgba(0,0,0,.22); z-index: 40; }
+.undo.on { transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: auto; }
+.undo b { font-weight: 700; }
+.undo-b { font: inherit; font-size: 13px; font-weight: 700; padding: 4px 12px; cursor: pointer;
+  border: 1px solid rgba(255,255,255,.35); border-radius: 7px; background: transparent; color: #fff; }
+.undo-b:hover { background: rgba(255,255,255,.14); }
+
+.gr { display: flex; gap: 5px; margin-top: auto; padding-top: 8px; }
+.gr-b { font: inherit; font-size: 12px; font-weight: 700; width: 30px; height: 24px;
+  border: 1px solid var(--border); border-radius: 6px; background: var(--card);
+  color: var(--ink-faint); cursor: pointer; padding: 0; line-height: 1; }
+.gr-b.no:hover  { border-color: var(--wrong);  color: var(--wrong); }
+.gr-b.mid:hover { border-color: var(--flame);  color: var(--flame); }
+.gr-b.yes:hover { border-color: var(--accent); color: var(--accent); }
+.vw .gr { margin-top: 8px; }
+
+/* your own wording, marked so you can tell it from the course's */
+.mine { display: flex; align-items: baseline; gap: 6px; padding: 4px 0; }
+.mine-zh { font-size: 13.5px; color: var(--ink); border-left: 3px solid var(--accent); padding-left: 8px; }
+.mine-edit { font: inherit; font-size: 11px; padding: 0 4px; border: 0; background: transparent;
+  color: var(--ink-faint); cursor: pointer; opacity: 0; transition: opacity .12s; }
+.fc:hover .mine-edit, .vw:hover .mine-edit, .rv .mine-edit { opacity: .6; }
+.mine-edit:hover { opacity: 1; color: var(--accent); }
+.mine-add { font: inherit; font-size: 12px; padding: 5px 10px; cursor: pointer;
+  border: 1px dashed var(--border); border-radius: 8px; background: transparent; color: var(--ink-faint); }
+.mine-add:hover { border-color: var(--accent); color: var(--accent); border-style: solid; }
+.mine-in { font: inherit; font-size: 13px; width: 100%; padding: 6px 9px;
+  border: 1px solid var(--accent); border-radius: 7px; background: var(--card); color: var(--ink); }
+.rv .mine-zh { font-size: 16px; }
+
+/* the word's own gloss — the card's headline meaning, above the sentence */
+.gl { display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap;
+  padding: 5px 0; border-bottom: 1px dashed var(--border); }
+.gl:last-of-type { border-bottom: none; }
+.gl-en { font-size: 13px; font-weight: 700; }
+.gl-pos { font-family: var(--mono); font-size: 10px; color: var(--ink-faint);
+  border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; }
+.gl-zh { font-size: 13px; color: var(--ink); }
+.gl-d { font-family: var(--mono); font-size: 10px; color: var(--ink-faint); margin-left: auto; }
+.gl-rel { font-size: 9.5px; font-weight: 700; color: var(--flame); background: #fdf0e6;
+  border-radius: 4px; padding: 0 5px; letter-spacing: .3px; }
+.fc-b .gl { padding: 3px 0; }
+.fc-b .gl-en { font-size: 12px; }
+.fc-b .gl-zh { font-size: 12.5px; }
+.rv .gl { padding: 7px 0; }
+.rv .gl-en, .rv .gl-zh { font-size: 15px; }
+
+.empty { padding: 30px 18px; text-align: center; color: var(--ink-faint); font-size: 13px;
+  background: #fbfaf7; border-radius: 10px; line-height: 1.7; }
+.foot { margin-top: 14px; }
+.x { font: inherit; font-size: 11.5px; padding: 5px 10px; border: 1px solid var(--border);
+  border-radius: 8px; background: transparent; color: var(--ink-faint); cursor: pointer; }
+.x:hover { color: var(--wrong); border-color: var(--wrong); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <h1>📌 Word Vault</h1>
+  <span class="sub" id="hdr"></span>
+  <a class="back" href="index.html">← Dashboard</a>
+</div>
+
+<section id="main">
+  <h2>Everything you tapped while reading</h2>
+  <div class="h2-sub">Familiarity comes from the same review schedule as the drills — a word you
+    recall slowly is not a word you know, so it comes back sooner. Tap a card to turn it over.</div>
+
+  <div class="lv-bar" id="lv-bar"></div>
+  <div class="lv-legend" id="lv-legend"></div>
+  <div class="lv-note" id="lv-note"></div>
+
+  <div class="tools">
+    <div class="tabs" id="tabs"></div>
+    <input id="q" class="search" type="search" placeholder="Search word, sentence or Chinese…" autocomplete="off">
+    <div class="viewsw">
+      <button id="v-cards" class="on">Cards</button>
+      <button id="v-list">List</button>
+    </div>
+  </div>
+  <div class="tools" id="review-row" style="display:none">
+    <button class="cta" id="start">Review <span class="cta-sub" id="start-n"></span></button>
+  </div>
+
+  <div id="body" style="margin-top:14px"></div>
+  <div class="foot"><button class="x" id="clear">Clear the vault</button></div>
+</section>
+
+<section id="rv-wrap" style="display:none">
+  <div class="rv" id="rv"></div>
+</section>
+
+<div class="undo" id="undo"></div>
+</div>
+
+<script src="srs.js"></script>
+<script src="glossary.js"></script>
+<script>
+/* ── Word Vault ───────────────────────────────────────────────────────
+   Words are filed by reading.html. Familiarity is never stored here: it is
+   derived from the SRS card for `vault:<word>`, the same schedule the chunk
+   drills use, so reviewing here also settles the word everywhere else. */
+const KEY = "toeic.vocabVault.v1";
+/* Five levels, because the three review buttons produce three different
+   outcomes and "Forgot" must not land in the same bucket as "Came slowly". */
+const LEVELS = [
+  { name: "New",       hint: "filed, not graded yet" },
+  { name: "Forgotten", hint: "missed last time — back today" },
+  { name: "Learning",  hint: "recalled, but slowly" },
+  { name: "Familiar",  hint: "holding for several days" },
+  { name: "Known",     hint: "holding for over a week" },
+];
+
+const el = id => document.getElementById(id);
+const esc = t => String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const read = () => { try { return JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { return {}; } };
+const srsKey = w => "vault:" + w;
+const card = w => { const r = window.SRS && window.SRS.raw(); return (r && r.cards[srsKey(w)]) || null; };
+
+/* Thresholds follow the SRS's own interval growth: a first fast recall earns
+   3 days, so "over a week" is roughly three clean recalls — which is where the
+   research puts mastery. Right-but-slow never counts as known. */
+function level(w) {
+  const c = card(w);
+  if (!c || !c.n) return 0;                      // never graded
+  // A miss resets the interval to half a day; nothing else is ever that short,
+  // so this reads as "the last answer was wrong".
+  if (c.s <= 0.5) return 1;                      // Forgotten
+  if (c.ok / c.n < 0.7 || c.slow / c.n >= 0.5) return 2;   // right, but not reliably
+  return c.s >= 8 ? 4 : c.s >= 2 ? 3 : 2;
+}
+const isLeech = w => { const c = card(w); return !!c && c.n - c.ok >= 4 && c.ok / c.n < 0.5; };
+
+/* ── the word's own Chinese ───────────────────────────────────────────
+   Looked up at render time rather than copied in when the word is filed, so
+   every card gets it — the ones filed before this existed included, and any
+   day added to the course later. The source is the course's own word lists:
+   whatever the book teaches a word to mean is what the card says.
+   A tap lands on one word, but the list often teaches the phrase around it
+   (`entitled` → `be entitled to`), so the index maps both ways. */
+function glossStem(w) {
+  for (const s of ["ies", "ing", "ed", "es", "s", "ly"])
+    if (w.length > s.length + 2 && w.endsWith(s)) return w.slice(0, -s.length);
+  return w;
+}
+/* mirrors build_glossary.py's base(): silent e before -ing, f→ves, y→ies,
+   so a tap on `procrastinating` or `bookshelves` still finds its entry */
+function glossBase(w) {
+  w = glossStem(w);
+  while (w.length > 2 && "yi".includes(w.slice(-1))) w = w.slice(0, -1);
+  if (w.endsWith("e")) w = w.slice(0, -1);
+  if (w.endsWith("f")) w = w.slice(0, -1) + "v";
+  return w;
+}
+/* Accents are folded before lookup — the word lists say `résumé`, the index
+   says `resume`. */
+function glossFold(t) {
+  return t.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+/* A tap yields one word, a drag yields a phrase, and both have to work. The
+   index is keyed by single words, so a phrase is looked up word by word and
+   the results ranked by how completely they match the whole thing. */
+function gloss(text) {
+  const G = window.GLOSSARY;
+  if (!G) return [];
+  const words = (glossFold(text).match(/[a-z']+/g) || []);
+  if (!words.length) return [];
+  const whole = words.join(" ");
+  const ids = new Set();
+  for (const w of words) {
+    (G.index[w] || []).forEach(i => ids.add(i));
+    (G.index[glossStem(w)] || []).forEach(i => ids.add(i));
+    (G.index[glossBase(w)] || []).forEach(i => ids.add(i));
+  }
+  const same = (a, b) => a === b || glossBase(a) === glossBase(b);
+  /* Sharing one word is not a match. `put off` once showed `put into effect`
+     and `strikes` showed `striking difference`, which is worse than showing
+     nothing — a wrong gloss is learned as readily as a right one. An entry
+     now has to account for every word of the query, or contain it whole. */
+  const rank = e => {
+    const kw = (glossFold(e.en).match(/[a-z']+/g) || []);
+    if (kw.join(" ") === whole) return 4;                       // the same thing
+    if (words.every(w => kw.some(x => same(x, w)))) return 3;   // covers all of it
+    if (words.length === 1 && kw.some(x => same(x, words[0]))) return 2;  // the word inside a phrase
+    return 0;                                                   // shares a word: not a match
+  };
+  return [...ids].map(i => ({ e: G.entries[i], r: rank(G.entries[i]) }))
+    .filter(x => x.r > 0)
+    .sort((a, b) => b.r - a.r || a.e.day - b.e.day)
+    /* Only a literal match is presented as the definition. `strikes` and
+       `striking difference` share a root but not a meaning, and no amount of
+       stemming can tell those apart — so anything that is not the same string
+       is labelled as a related entry and left for you to judge. */
+    .map(x => ({ ...x.e, exact: (glossFold(x.e.en).match(/[a-z']+/g) || []).join(" ") === whole }));
+}
+
+/* ── your own meaning ─────────────────────────────────────────────────
+   A definition you looked up and phrased yourself is remembered better than
+   one handed to you, so this is an input rather than an automatic fill — and
+   once written it outranks the course gloss, because it is the wording you
+   will actually recall. */
+function mineOf(key) { return (read()[key] || {}).mine || ""; }
+function setMine(key, text) {
+  const v = read();
+  if (!v[key]) return;
+  text = (text || "").trim();
+  if (text) v[key].mine = text; else delete v[key].mine;
+  localStorage.setItem(KEY, JSON.stringify(v));
+}
+function meaningHTML(key) {
+  const mine = mineOf(key);
+  if (mine) return `<div class="mine" data-w="${esc(key)}">
+      <span class="mine-zh">${esc(mine)}</span>
+      <button class="mine-edit" title="Edit">✎</button></div>`;
+  return glossHTML(key) || `<button class="mine-add" data-w="${esc(key)}">+ write what it means</button>`;
+}
+
+/* The word itself is the play button — tapping the thing you want to hear is
+   more direct than hunting a speaker icon beside it. A card still flips when
+   tapped anywhere else, so the two do not collide. */
+function audioWord(key, label) {
+  const au = (gloss(key)[0] || {}).au;
+  return au
+    ? `<span class="say" data-au="${esc(au)}" title="Tap to hear it">${esc(label)}</span>`
+    : esc(label);
+}
+
+/* Grading is available everywhere a word is shown, not only inside review:
+   the deck is where you notice you have forgotten something. */
+function gradeBtns(word) {
+  return `<div class="gr" data-w="${esc(word)}">
+    <button class="gr-b no"  data-g="0" title="Forgot">✕</button>
+    <button class="gr-b mid" data-g="1" title="Came slowly">~</button>
+    <button class="gr-b yes" data-g="2" title="Straight away">✓</button>
+  </div>`;
+}
+function grade(word, g, rt) {
+  if (!window.SRS) return;
+  // grade 1 is a correct answer reported as slow, so it earns the short
+  // interval the schedule gives any slow-correct and comes back soon
+  window.SRS.record(srsKey(word), "vault", g > 0,
+    g === 2 ? Math.min(rt || 3000, window.SRS.FAST_MS - 1)
+            : Math.max(rt || 25000, window.SRS.SLOW_MS + 1));
+}
+
+const glossHTML = word => gloss(word).slice(0, 3).map(e =>
+  `<div class="gl"><span class="gl-en">${e.au
+       ? `<span class="say" data-au="${esc(e.au)}" title="Tap to hear it">${esc(e.en)}</span>`
+       : esc(e.en)}</span>
+     ${e.pos ? `<span class="gl-pos">${esc(e.pos)}</span>` : ""}
+     <span class="gl-zh">${esc(e.zh)}</span>
+     ${e.exact ? "" : '<span class="gl-rel">related entry</span>'}
+     <span class="gl-d">D${String(e.day).padStart(2, "0")}</span></div>`).join("");
+const isDue  = w => { const c = card(w); return !!c && c.n > 0 && c.due <= Date.now(); };
+/* A word filed today has no SRS card at all, so it is never "due" — but it is
+   the one thing that most needs grading. Treat unseen and overdue alike. */
+const needsWork = w => { const c = card(w); return !c || !c.n || c.due <= Date.now(); };
+
+let filter = "all", query = "", view = "cards";
+
+const entries = () => Object.keys(read()).sort().map(k => {
+  const e = read()[k];
+  return { key: k, en: e.en || k, seen: e.seen || [], lv: level(k),
+           leech: isLeech(k), due: isDue(k), todo: needsWork(k) };
+});
+function visible(all) {
+  let r = all;
+  if (filter === "due") r = r.filter(e => e.todo);
+  else if (filter === "leech") r = r.filter(e => e.leech);
+  else if (filter !== "all") r = r.filter(e => e.lv === +filter);
+  if (query) {
+    const f = query.toLowerCase();
+    r = r.filter(e => e.key.includes(f) ||
+      e.seen.some(x => (x.en || "").toLowerCase().includes(f) || (x.zh || "").includes(query)));
+  }
+  return r;
+}
+function mark(sentence, word) {
+  if (!sentence) return "";
+  const re = new RegExp("(" + word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "[a-z]*)", "ig");
+  return esc(sentence).replace(re, "<b>$1</b>");
+}
+function cloze(sentence, word) {
+  if (!sentence) return "";
+  const re = new RegExp("\\b" + word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "[a-z]*\\b", "ig");
+  return esc(sentence).replace(re, "<u>&nbsp;</u>");
+}
+const lastSrc = e => e.seen.slice().sort((a, b) => a.day - b.day).pop() || {};
+const dayLabel = e => e.seen.map(x => "Day " + String(x.day).padStart(2, "0")).join(" · ");
+
+/* ── render ── */
+function render() {
+  const all = entries();
+  el("hdr").textContent = all.length + (all.length === 1 ? " word" : " words");
+  if (!all.length) {
+    el("lv-bar").style.display = "none";
+    el("body").innerHTML = `<div class="empty">Nothing filed yet.<br>
+      Open any day's <b>Reading Test</b> and tap a word you do not know — it lands here,
+      with the sentence it came from and that sentence's Chinese.</div>`;
+    el("lv-note").textContent = "";
+    el("tabs").innerHTML = "";
+    return;
+  }
+  const counts = [0, 0, 0, 0, 0];
+  all.forEach(e => counts[e.lv]++);
+  el("lv-bar").innerHTML = counts.map((n, k) => n
+    ? `<div class="lv-seg lv${k}" style="flex:${n} 1 0" title="${LEVELS[k].name}: ${LEVELS[k].hint}">${n}</div>`
+    : "").join("");
+  el("lv-legend").innerHTML = LEVELS.map((L, k) => counts[k]
+    ? `<span class="lv-key"><i class="lv${k}"></i>${L.name} <b>${counts[k]}</b></span>` : "").join("");
+  el("lv-note").textContent = LEVELS.map((L, k) => counts[k] ? `${L.name}: ${L.hint}` : null)
+    .filter(Boolean).join("  ·  ");
+
+  const dueN = all.filter(e => e.todo).length, leechN = all.filter(e => e.leech).length;
+  el("tabs").innerHTML =
+    `<button class="tab ${filter === "all" ? "on" : ""}" data-f="all">All<small>${all.length}</small></button>` +
+    (dueN ? `<button class="tab ${filter === "due" ? "on" : ""}" data-f="due">To grade<small>${dueN}</small></button>` : "") +
+    LEVELS.map((L, k) => counts[k]
+      ? `<button class="tab ${filter === String(k) ? "on" : ""}" data-f="${k}">${L.name}<small>${counts[k]}</small></button>` : "").join("") +
+    (leechN ? `<button class="tab ${filter === "leech" ? "on" : ""}" data-f="leech">Stuck<small>${leechN}</small></button>` : "");
+
+  el("review-row").style.display = dueN ? "" : "none";
+  el("start-n").textContent = dueN + " to grade";
+
+  const rows = visible(all);
+  if (!rows.length) { el("body").innerHTML = `<div class="empty">Nothing matches that.</div>`; return; }
+
+  el("body").innerHTML = view === "cards"
+    ? `<div class="deck">` + rows.map(e => {
+        const src = lastSrc(e);
+        return `<div class="fc ${e.leech ? "stuck" : ""}" data-w="${esc(e.key)}"><div class="fc-in">
+          <div class="fc-f">
+            <button class="del" data-w="${esc(e.key)}" title="Remove from the vault"
+              aria-label="Remove ${esc(e.en)}">🗑</button>
+            <div class="fc-w">${audioWord(e.key, e.en)}</div>
+            <div class="fc-hint">${src.en ? "tap to see the meaning" : ""}</div>
+            <div class="fc-meta"><span class="fc-dot lv${e.lv}"></span>
+              <span class="fc-lv">${LEVELS[e.lv].name}</span>
+              <span class="fc-day">${dayLabel(e)}</span></div>
+          </div>
+          <div class="fc-b">
+            ${meaningHTML(e.key)}
+            <div class="fc-src">${mark(src.en, e.en)}</div>
+            ${gradeBtns(e.key)}
+          </div></div></div>`;
+      }).join("") + `</div>`
+    : rows.map(e => {
+        const src = lastSrc(e);
+        return `<div class="vw" data-w="${esc(e.key)}">
+          <div class="vw-h"><span class="vw-dot lv${e.lv}"></span>
+            <span class="vw-w">${audioWord(e.key, e.en)}</span>
+            <span class="vw-lv">${LEVELS[e.lv].name}</span>
+            ${e.leech ? '<span class="vw-leech">stuck</span>' : ""}
+            <span class="vw-d">${dayLabel(e)}</span>
+            <button class="del inline" data-w="${esc(e.key)}" title="Remove from the vault"
+              aria-label="Remove ${esc(e.en)}">🗑</button></div>
+          <div class="vw-body">
+            ${meaningHTML(e.key)}
+            ${src.en ? `<div class="vw-src">${mark(src.en, e.en)}</div>` : ""}
+            ${src.zh ? `<div class="vw-zh">${esc(src.zh)}</div>` : ""}
+            ${gradeBtns(e.key)}
+          </div></div>`;
+      }).join("");
+}
+
+/* ── review: produce first, then check ── */
+let queue = [], at = 0, shown = 0;
+function startReview() {
+  queue = entries().filter(e => e.todo);
+  if (!queue.length) return;
+  at = 0;
+  el("main").style.display = "none";
+  el("rv-wrap").style.display = "";
+  drawCard();
+}
+function endReview() {
+  el("rv-wrap").style.display = "none";
+  el("main").style.display = "";
+  filter = "all"; render();
+}
+function drawCard() {
+  if (at >= queue.length) {
+    el("rv").innerHTML = `<div class="rv-word">Done</div>
+      <div class="rv-hint">${queue.length} word${queue.length === 1 ? "" : "s"} reviewed.
+        They come back on their own schedule.</div>
+      <div class="rv-btns"><button class="b pri" id="end">Back to the vault</button></div>`;
+    el("end").onclick = endReview;
+    return;
+  }
+  const e = queue[at], src = lastSrc(e);
+  shown = Date.now();
+  el("rv").innerHTML = `
+    <div class="rv-top"><span class="rv-n">${at + 1} / ${queue.length}</span>
+      <span class="rv-track"><span class="rv-fill" style="width:${at / queue.length * 100}%"></span></span></div>
+    <div class="rv-word">${audioWord(e.key, e.en)}</div>
+    ${src.en ? `<div class="rv-cloze">${cloze(src.en, e.en)}</div>` : ""}
+    <div class="rv-hint">Say what it means, and what fills the blank, before you turn it over.</div>
+    <div class="rv-btns"><button class="b pri" id="show">Turn over</button>
+      <button class="b ghost" id="quit">Stop</button></div>`;
+  el("show").onclick = () => reveal(e, src);
+  el("quit").onclick = endReview;
+}
+function reveal(e, src) {
+  const rt = Date.now() - shown;
+  el("rv").innerHTML = `
+    <div class="rv-top"><span class="rv-n">${at + 1} / ${queue.length}</span>
+      <span class="rv-track"><span class="rv-fill" style="width:${(at + 1) / queue.length * 100}%"></span></span></div>
+    <div class="rv-word">${audioWord(e.key, e.en)}</div>
+    ${meaningHTML(e.key)}
+    ${src.en ? `<div class="rv-cloze">${mark(src.en, e.en)}</div>` : ""}
+    ${src.zh ? `<div class="rv-zh">${esc(src.zh)}</div>` : ""}
+    <div class="rv-hint">Answer honestly — a slow recall is scheduled as a slow recall.</div>
+    <div class="rv-btns">
+      <button class="b no"  data-g="0">Forgot</button>
+      <button class="b mid" data-g="1">Came slowly</button>
+      <button class="b yes" data-g="2">Straight away</button>
+    </div>`;
+  el("rv").querySelectorAll("[data-g]").forEach(b => b.onclick = () => {
+    grade(e.key, +b.dataset.g, rt);
+    at++; drawCard();
+  });
+}
+
+/* ── pronunciation ─────────────────────────────────────────────────────
+   The course already speaks every word in neural TTS, so the card plays that
+   file rather than the browser's own voice. One element, so a second tap
+   cancels the first instead of layering. */
+let audio = null, playing = null;
+function say(btn) {
+  if (playing) playing.classList.remove("on");
+  if (audio) { audio.pause(); audio.currentTime = 0; }
+  audio = new Audio(btn.dataset.au);
+  playing = btn;
+  btn.classList.add("on");
+  // `stalled` matters: a file that never loads fires neither ended nor error,
+  // and the button would otherwise stay lit claiming to play
+  const clear = () => btn.classList.remove("on");
+  ["ended", "error", "pause", "stalled"].forEach(ev => audio.addEventListener(ev, clear));
+  audio.play().catch(clear);
+}
+
+/* ── removing a word ───────────────────────────────────────────────────
+   Undo rather than a confirm dialog: a confirm interrupts every deletion to
+   guard against the rare wrong one, and people learn to dismiss it unread.
+   The SRS record is deliberately left alone — if the word comes back later,
+   so does everything already learned about it. */
+let undoTimer = null;
+function removeWord(key) {
+  const v = read();
+  const backup = v[key];
+  if (!backup) return;
+  delete v[key];
+  localStorage.setItem(KEY, JSON.stringify(v));
+  render();
+  const bar = el("undo");
+  clearTimeout(undoTimer);
+  bar.innerHTML = `<span>Removed <b>${esc(backup.en || key)}</b></span>
+    <button class="undo-b" id="undo-go">Undo</button>`;
+  bar.classList.add("on");
+  el("undo-go").onclick = () => {
+    const cur = read();
+    cur[key] = backup;
+    localStorage.setItem(KEY, JSON.stringify(cur));
+    bar.classList.remove("on");
+    render();
+  };
+  undoTimer = setTimeout(() => bar.classList.remove("on"), 6000);
+}
+
+/* Swap the prompt for a field in place; Enter keeps it, Escape abandons it. */
+function editMine(host, key) {
+  host.innerHTML = `<input class="mine-in" type="text" value="${esc(mineOf(key))}"
+    placeholder="what it means, in your words" maxlength="80">`;
+  const inp = host.querySelector(".mine-in");
+  inp.focus(); inp.select();
+  let done = false;
+  const keep = () => { if (done) return; done = true; setMine(key, inp.value); render(); };
+  inp.addEventListener("keydown", ev => {
+    ev.stopPropagation();
+    if (ev.key === "Enter") keep();
+    if (ev.key === "Escape") { done = true; render(); }
+  });
+  inp.addEventListener("blur", keep);
+  inp.addEventListener("click", ev => ev.stopPropagation());
+}
+
+/* ── events ── */
+el("tabs").addEventListener("click", ev => {
+  const t = ev.target.closest(".tab"); if (!t) return;
+  filter = t.dataset.f; render();
+});
+el("body").addEventListener("click", ev => {
+  if (ev.target.closest(".mine-in")) { ev.stopPropagation(); return; }
+  const add = ev.target.closest(".mine-add");
+  if (add) { ev.stopPropagation(); editMine(add.parentNode, add.dataset.w); return; }
+  const edt = ev.target.closest(".mine-edit");
+  if (edt) { ev.stopPropagation();
+    const host = edt.closest(".mine"); editMine(host.parentNode, host.dataset.w); return; }
+  const dl = ev.target.closest(".del");
+  if (dl) { ev.stopPropagation(); removeWord(dl.dataset.w); return; }
+  const sp = ev.target.closest(".say");
+  if (sp) { ev.stopPropagation(); say(sp); return; }
+  const gb = ev.target.closest(".gr-b");
+  if (gb) {
+    ev.stopPropagation();
+    grade(gb.parentNode.dataset.w, +gb.dataset.g);
+    render();                       // the level moves immediately
+    return;
+  }
+  const fc = ev.target.closest(".fc");
+  if (fc) { fc.classList.toggle("flip"); return; }
+  const h = ev.target.closest(".vw-h");
+  if (h) h.parentNode.classList.toggle("open");
+});
+el("q").addEventListener("input", () => { query = el("q").value.trim(); render(); });
+el("v-cards").onclick = () => { view = "cards"; el("v-cards").classList.add("on"); el("v-list").classList.remove("on"); render(); };
+el("v-list").onclick  = () => { view = "list";  el("v-list").classList.add("on");  el("v-cards").classList.remove("on"); render(); };
+el("rv-wrap").addEventListener("click", ev => {
+  const sp = ev.target.closest(".say");
+  if (sp) { ev.stopPropagation(); say(sp); return; }
+  const add = ev.target.closest(".mine-add");
+  if (add) { editMine(add.parentNode, add.dataset.w); return; }
+  const edt = ev.target.closest(".mine-edit");
+  if (edt) { const host = edt.closest(".mine"); editMine(host.parentNode, host.dataset.w); }
+});
+el("start").onclick = startReview;
+el("clear").onclick = () => {
+  if (!confirm("Remove every word from the vault? Review history stays.")) return;
+  localStorage.removeItem(KEY); render();
+};
+
+(window.SRS && window.SRS.boot ? window.SRS.boot() : Promise.resolve())
+  .catch(() => {}).then(render);
+</script>
+</body>
+</html>

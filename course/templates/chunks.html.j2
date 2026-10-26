@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Day {{ '%02d' % day }} Core Chunks · {{ theme_en }}</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --card: #fff; --ink: #1a1a1a; --ink-soft: #6b6b6b;
+    --accent: #2a7a4f; --accent-soft: #e5f0ea; --accent-strong: #1e5e3d;
+    --wrong: #c0392b; --wrong-soft: #fdeae7;
+    --hesitant: #d4a017; --hesitant-soft: #fef8e0;
+    --border: #e4e0d8; --shadow: 0 1px 2px rgba(0,0,0,0.03), 0 4px 12px rgba(0,0,0,0.04);
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, "PingFang TC", "Noto Sans TC", sans-serif;
+    background: var(--bg); color: var(--ink); margin: 0; line-height: 1.5;
+    display: flex; flex-direction: column;
+  }
+
+  /* Top sticky header */
+  .top {
+    background: white; border-bottom: 1px solid var(--border);
+    padding: 12px 20px; position: sticky; top: 0; z-index: 10;
+  }
+  .top-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .top .title { font-weight: 700; font-size: 15px; color: var(--accent); }
+  .top .title small { color: var(--ink-soft); font-weight: 400; margin-left: 4px; font-size: 12px; }
+  .top a.back {
+    color: var(--ink-soft); font-size: 12px; text-decoration: none;
+    padding: 4px 10px; border-radius: 5px; border: 1px solid var(--border);
+  }
+  .top a.back:hover { background: var(--bg); }
+  .top .grow { flex-grow: 1; }
+
+  .mode-toggle { display: flex; gap: 2px; background: var(--bg); border-radius: 8px; padding: 3px; }
+  .mode-toggle button {
+    padding: 6px 14px; background: transparent; border: none; border-radius: 6px;
+    font-size: 13px; cursor: pointer; font-family: inherit; color: var(--ink-soft);
+  }
+  .mode-toggle button.active { background: white; color: var(--accent); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+
+  .part-filter { display: flex; gap: 4px; flex-wrap: wrap; }
+  .part-filter button, .level-filter button {
+    padding: 5px 10px; background: white; border: 1px solid var(--border);
+    border-radius: 5px; cursor: pointer; font-size: 12px; font-family: inherit;
+    color: var(--ink-soft);
+  }
+  .part-filter button:hover, .level-filter button:hover { border-color: var(--ink); color: var(--ink); }
+  .part-filter button.active { background: var(--pc, var(--accent)); color: white; border-color: var(--pc, var(--accent)); }
+
+  .level-filter button .lc {
+    display: inline-block; margin-left: 5px; padding: 0 5px;
+    border-radius: 8px; background: var(--border); color: var(--ink-soft);
+    font-size: 11px; font-variant-numeric: tabular-nums;
+  }
+  .level-filter button.active { background: var(--accent); color: white; border-color: var(--accent); }
+  .level-filter button.active .lc { background: rgba(255,255,255,0.25); color: white; }
+  .level-filter button[data-level="wrong"].active { background: var(--wrong); border-color: var(--wrong); }
+  .level-filter button[data-level="hesitant"].active { background: #b8860b; border-color: #b8860b; }
+  .level-filter button[data-level="missed"].active { background: #7a3b8f; border-color: #7a3b8f; }
+  .filter-label { font-size: 12px; color: var(--ink-soft); min-width: 62px; }
+
+  .progress-row { display: flex; align-items: center; gap: 12px; margin-top: 10px; font-size: 12px; color: var(--ink-soft); }
+  .progress-bar { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .progress-fill {
+    height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+    transition: width 0.3s;
+  }
+  .progress-row b { color: var(--ink); font-family: var(--mono); }
+
+  .nav-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  .nav-row .nav-btn {
+    padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px;
+    background: white; cursor: pointer; font-size: 12px; font-family: inherit;
+    color: var(--ink-soft); white-space: nowrap;
+  }
+  .nav-row .nav-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .nav-row .nav-btn:disabled { opacity: 0.35; cursor: default; }
+  .nav-row input[type="range"] { flex: 1; accent-color: var(--accent); }
+  body.mode-lookup .nav-row { display: none; }
+
+  .stage {
+    flex-grow: 1; display: flex; align-items: flex-start; justify-content: center;
+    padding: 28px 20px 48px; overflow-y: auto;
+  }
+  /* The card modes want a centred flex item; the table wants the full width.
+     As a flex item the table section gets shrunk to its content, so Lookup
+     drops out of flex layout entirely and centres with margin instead. */
+  body.mode-lookup .stage { display: block; }
+
+  body.mode-study .lookup-section,
+  body.mode-study .speak-section,
+  body.mode-speak .lookup-section,
+  body.mode-speak .study-section,
+  body.mode-lookup .study-section,
+  body.mode-lookup .speak-section { display: none; }
+
+  /* ── Card ─────────────────────────────────────────────────────────────── */
+  .study-card, .speak-card {
+    background: white; padding: 32px 30px; border-radius: 14px;
+    box-shadow: var(--shadow); max-width: 640px; width: 100%; text-align: center;
+    border: 1px solid var(--border); animation: fadeIn 0.2s;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .part-badge {
+    display: inline-block; padding: 3px 11px; border-radius: 12px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.4px; margin-bottom: 14px;
+    background: var(--pbg, var(--accent-soft)); color: var(--pfg, var(--accent));
+  }
+  .chunk-id { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); opacity: 0.7; }
+
+  .study-card .word {
+    font-size: 32px; font-weight: 700; color: var(--accent-strong);
+    margin: 10px 0 4px; letter-spacing: 0.2px; line-height: 1.25;
+  }
+
+  .audio-btns { display: flex; justify-content: center; gap: 8px; margin: 18px 0 4px; flex-wrap: wrap; }
+  .audio-btns button {
+    padding: 7px 14px; border: 1px solid var(--border); border-radius: 20px;
+    background: white; cursor: pointer; font-size: 12.5px; font-family: inherit;
+    color: var(--ink-soft); white-space: nowrap;
+  }
+  .audio-btns button:hover { border-color: var(--accent); color: var(--accent); }
+  .audio-btns button.playing { background: var(--accent); color: white; border-color: var(--accent); }
+  .audio-btns .sep { width: 1px; background: var(--border); margin: 2px 4px; }
+
+  .meaning {
+    background: var(--accent-soft); padding: 18px; border-radius: 10px;
+    margin: 18px 0 4px; font-size: 21px; font-weight: 600; color: var(--accent-strong);
+    animation: fadeIn 0.2s;
+  }
+
+  .reveal-btn, .said-btn {
+    padding: 12px 28px; background: var(--accent); color: white; border: none;
+    border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;
+    font-family: inherit; margin: 18px 0 4px;
+  }
+  .reveal-btn:hover, .said-btn:hover { background: var(--accent-strong); }
+
+  /* The four authored fields, each with its own visual slot so the eye can
+     learn where to look: sentence → scene → family → pattern. */
+  .detail { text-align: left; margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .detail .row {
+    border: 1px solid var(--border); border-radius: 10px; padding: 11px 13px;
+    background: var(--bg);
+  }
+  .detail .row .lbl {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--ink-soft); display: block; margin-bottom: 5px;
+  }
+  .detail .row.ex { background: white; }
+  .detail .row.ex .en { font-size: 15px; line-height: 1.6; }
+  .detail .row.ex .en b { color: var(--accent-strong); font-weight: 700; background: var(--accent-soft);
+                          padding: 1px 3px; border-radius: 3px; }
+  .detail .row.ex .zh { font-size: 13px; color: var(--ink-soft); margin-top: 6px; }
+  .detail .row.scene { border-left: 3px solid #b8860b; }
+  .detail .row.fam { border-left: 3px solid #4a6fa5; font-size: 13.5px; }
+  .detail .row.gram { border-left: 3px solid #7a3b8f; font-size: 13.5px; font-family: var(--mono); line-height: 1.7; }
+  .detail .row.gram code, .detail .row.fam code {
+    background: white; border: 1px solid var(--border); border-radius: 4px;
+    padding: 1px 5px; font-family: var(--mono); font-size: 12.5px;
+  }
+
+  /* Practice history — read-only, sourced from the Chunk Drill / Dictation log */
+  .drill-strip {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    font-size: 11.5px; color: var(--ink-soft); margin-top: 14px; flex-wrap: wrap;
+  }
+  .drill-strip .dots { font-family: var(--mono); letter-spacing: 2px; font-size: 13px; }
+  .drill-strip .ok { color: var(--accent); }
+  .drill-strip .no { color: var(--wrong); }
+  .drill-strip .none { opacity: 0.55; }
+
+  .verdict-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+  .verdict-btns button {
+    padding: 13px 8px; border: 2px solid transparent; border-radius: 10px;
+    cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 700;
+  }
+  .verdict-btns .btn-wrong { background: var(--wrong-soft); color: var(--wrong); }
+  .verdict-btns .btn-wrong:hover { border-color: var(--wrong); }
+  .verdict-btns .btn-hesitant { background: var(--hesitant-soft); color: var(--hesitant); }
+  .verdict-btns .btn-hesitant:hover { border-color: var(--hesitant); }
+  .verdict-btns .btn-known { background: var(--accent-soft); color: var(--accent-strong); }
+  .verdict-btns .btn-known:hover { border-color: var(--accent); }
+  .verdict-btns button .num { display: block; font-size: 10px; opacity: 0.6; font-family: var(--mono); margin-top: 2px; }
+
+  .kbd-hint { text-align: center; color: var(--ink-soft); font-size: 12px; margin-top: 14px; font-family: var(--mono); }
+  .kbd-hint kbd {
+    padding: 2px 6px; background: white; border: 1px solid var(--border);
+    border-radius: 3px; font-family: var(--mono); font-size: 11px; margin: 0 2px;
+  }
+
+  .study-empty { text-align: center; padding: 60px 20px; color: var(--ink-soft); }
+  .study-empty .icon { font-size: 48px; margin-bottom: 12px; }
+  .study-empty h2 { color: var(--accent); margin: 0 0 8px; }
+
+  /* ── Speak mode ───────────────────────────────────────────────────────── */
+  .speak-card .cue-zh { font-size: 30px; font-weight: 700; color: var(--ink); margin: 18px 0 6px; }
+  .speak-card .cue-scene {
+    font-size: 13px; color: var(--ink-soft); margin-bottom: 6px;
+    padding: 0 10px; line-height: 1.6;
+  }
+  .speak-card .cue-gram {
+    display: inline-block; font-family: var(--mono); font-size: 12px; color: #7a3b8f;
+    background: #f4ecf7; border-radius: 6px; padding: 4px 10px; margin-bottom: 20px;
+  }
+  .speak-card .cue-prompt {
+    padding: 15px 18px; background: #fef8e0; border-radius: 10px;
+    color: var(--hesitant); font-size: 14px; font-weight: 600; margin: 18px 0;
+  }
+  .speak-card .cue-prompt .big { font-size: 17px; display: block; margin-bottom: 4px; }
+  .speak-card .reveal-en {
+    font-size: 30px; font-weight: 700; color: var(--accent-strong);
+    margin: 18px 0 6px; animation: fadeIn 0.2s;
+  }
+  .speak-card .reveal-zh { color: var(--ink-soft); font-size: 15px; margin-bottom: 6px; }
+  .speak-card .self-check-label { color: var(--ink-soft); font-size: 12px; margin: 16px 0 8px; }
+
+  /* ── Lookup mode ──────────────────────────────────────────────────────── */
+  .lookup-section { width: 100%; max-width: 1080px; margin: 0 auto; }
+  .toolbar {
+    background: var(--card); padding: 12px 14px; border-radius: 10px;
+    display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+    border: 1px solid var(--border); margin-bottom: 12px;
+  }
+  .toolbar input {
+    flex: 1; min-width: 200px; padding: 8px 12px; border: 1px solid var(--border);
+    border-radius: 6px; font-size: 14px; font-family: inherit;
+  }
+  .toolbar input:focus { outline: none; border-color: var(--accent); }
+  .counter { color: var(--ink-soft); font-size: 12px; font-family: var(--mono); }
+  .lookup-hint { color: var(--ink-soft); font-size: 12px; }
+  /* Seven columns of very unequal content: auto layout lets the monospace
+     pattern column starve the Chinese scene column down to one glyph per line,
+     so the widths are declared and fixed instead. */
+  .table-scroll { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); background: var(--card); }
+  table { width: 100%; min-width: 900px; border-collapse: collapse; table-layout: fixed; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 13.5px;
+           vertical-align: top; word-break: break-word; }
+  th { background: var(--accent-soft); color: var(--accent-strong); font-weight: 700; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.5px; }
+  tr:last-child td { border: none; }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: var(--accent-soft); }
+  tr.known-row td { opacity: 0.42; }
+  tr.hidden { display: none; }
+  td.en { font-weight: 700; font-family: var(--mono); font-size: 12.5px; }
+  td.en .cid { display: block; font-size: 10px; color: var(--ink-soft); font-weight: 400; opacity: 0.7; }
+  td.zh { font-size: 13px; }
+  td.gram { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); line-height: 1.55; }
+  td.scene { font-size: 12.5px; color: var(--ink-soft); line-height: 1.6; }
+  td.part { text-align: center; }
+  td.drill { text-align: center; font-family: var(--mono); font-size: 12px; }
+  td.audio { text-align: center; padding: 8px 6px; white-space: nowrap; }
+  td.audio button {
+    padding: 3px 7px; border: 1px solid var(--border); border-radius: 14px;
+    background: white; cursor: pointer; font-size: 11px; font-family: inherit; margin: 1px;
+  }
+  td.audio button:hover { border-color: var(--accent); background: var(--accent-soft); }
+  td.audio button.playing { background: var(--accent); color: white; border-color: var(--accent); }
+  .pbadge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+
+  /* Seven columns need ~900px to stay readable. In a half-screen window the two
+     that are already reachable elsewhere give way: Pattern is on the card and in
+     Speak mode, Part is what the filter row above is for. Scene stays — it exists
+     on no other page, which is the whole reason for this table. Search still
+     matches the hidden columns' text. */
+  @media (max-width: 900px) {
+    table { min-width: 620px; }
+    th.col-gram, td.gram, th.col-part, td.part { display: none; }
+  }
+
+  /* Modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100;
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: white; padding: 28px; border-radius: 14px; max-width: 460px; width: 100%;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  }
+  .modal h2 { margin: 0 0 6px; font-size: 22px; color: var(--accent); }
+  .modal .sub { color: var(--ink-soft); font-size: 13px; margin-bottom: 20px; }
+  .modal .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+  .modal .stat { padding: 14px; border-radius: 8px; text-align: center; }
+  .modal .stat .n { font-size: 26px; font-weight: 700; font-family: var(--mono); }
+  .modal .stat .l { font-size: 11px; margin-top: 2px; }
+  .modal .stat.known { background: var(--accent-soft); color: var(--accent-strong); }
+  .modal .stat.hesitant { background: var(--hesitant-soft); color: var(--hesitant); }
+  .modal .stat.wrong { background: var(--wrong-soft); color: var(--wrong); }
+  .modal .stat.total { background: var(--bg); color: var(--ink); }
+  .modal .actions { display: flex; flex-direction: column; gap: 8px; }
+  .modal .actions button, .modal .actions a {
+    padding: 12px; border: 1px solid var(--border); border-radius: 8px;
+    background: white; cursor: pointer; font-family: inherit; font-size: 14px;
+    text-decoration: none; color: var(--ink); text-align: center;
+  }
+  .modal .actions .primary { background: var(--accent); color: white; border-color: var(--accent); }
+
+  audio { display: none; }
+</style>
+</head>
+<body class="mode-study">
+
+<div class="top">
+  <div class="top-row">
+    <a href="index.html" class="back">← Day {{ '%02d' % day }} Home</a>
+    <span class="title">🎯 Core Chunks <small>{{ theme_en }}</small></span>
+    <span class="grow"></span>
+    <div class="mode-toggle">
+      <button class="active" data-mode="study">🎯 Recognition (EN→ZH)</button>
+      <button data-mode="speak">🎤 Speak (ZH→EN)</button>
+      <button data-mode="lookup">📋 Lookup</button>
+    </div>
+  </div>
+  <div class="top-row" style="margin-top: 10px;">
+    <span class="filter-label">Part</span>
+    <div class="part-filter">
+      <button class="active" data-part="all">All ({{ items|length }})</button>
+      {% for p in parts_meta %}
+      <button data-part="{{ loop.index0 }}" style="--pc: {{ p.color }};">{{ p.icon }} {{ p.name }} ({{ counts[loop.index0] }})</button>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="top-row" style="margin-top: 6px;">
+    <span class="filter-label">Familiarity</span>
+    <div class="part-filter level-filter">
+      <button class="active" data-level="all">All</button>
+      <button data-level="new">New<span class="lc" id="lc-new">0</span></button>
+      <button data-level="wrong">Blank ✗<span class="lc" id="lc-wrong">0</span></button>
+      <button data-level="hesitant">Uncertain 🤔<span class="lc" id="lc-hesitant">0</span></button>
+      <button data-level="known">Known ✓<span class="lc" id="lc-known">0</span></button>
+      <button data-level="missed" title="Chunks you got wrong in Practice (Chunk Drill / Dictation)">Missed in Practice<span class="lc" id="lc-missed">0</span></button>
+    </div>
+  </div>
+  <div class="progress-row">
+    <span>Session</span>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width: 0%;"></div></div>
+    <span><b id="session-idx">0</b>/<b id="session-total">0</b> · Total known <b id="known-count">0</b>/{{ items|length }}</span>
+  </div>
+  <div class="nav-row" id="nav-row">
+    <button class="nav-btn" id="nav-prev" title="Previous (←)">◀ Prev</button>
+    <input type="range" id="nav-scrubber" min="0" max="0" value="0" title="Drag to jump to any chunk">
+    <button class="nav-btn" id="nav-next" title="Next (→)">Next ▶</button>
+  </div>
+</div>
+
+<div class="stage">
+  <!-- STUDY MODE -->
+  <section class="study-section" id="study-section">
+    <div class="study-empty" id="study-empty" hidden>
+      <div class="icon">🎉</div>
+      <h2>Nothing left here</h2>
+      <p>No chunk matches the current Part × Familiarity filter. Try another combination.</p>
+    </div>
+    <div class="study-card" id="study-card">
+      <div class="part-badge" id="part-badge"></div>
+      <div class="chunk-id" id="chunk-id"></div>
+      <div class="word" id="word"></div>
+      <div class="audio-btns" id="audio-btns">
+        <button data-src="wm">👨 Chunk</button>
+        <button data-src="wf">👩 Chunk</button>
+        <span class="sep"></span>
+        <button data-src="sm">👨 Sentence</button>
+        <button data-src="sf">👩 Sentence</button>
+      </div>
+      <div class="drill-strip" id="drill-strip"></div>
+      <div id="meaning-slot"></div>
+      <div class="kbd-hint" id="kbd-hint"><kbd>Space</kbd> reveal</div>
+    </div>
+  </section>
+
+  <!-- SPEAK MODE -->
+  <section class="speak-section" id="speak-section">
+    <div class="study-empty" id="speak-empty" hidden>
+      <div class="icon">🎉</div>
+      <h2>Nothing left here</h2>
+      <p>No chunk matches the current Part × Familiarity filter. Try another combination.</p>
+    </div>
+    <div class="speak-card" id="speak-card">
+      <div class="part-badge" id="speak-part-badge"></div>
+      <div class="cue-zh" id="speak-cue-zh"></div>
+      <div class="cue-scene" id="speak-cue-scene"></div>
+      <div id="speak-cue-gram-slot"></div>
+      <div id="speak-slot"></div>
+      <div class="kbd-hint" id="speak-hint"></div>
+    </div>
+  </section>
+
+  <!-- LOOKUP MODE -->
+  <section class="lookup-section">
+    <div class="toolbar">
+      <input id="search" type="text" placeholder="Search chunk, meaning, scene, family or pattern...">
+      <span class="counter"><span id="visible-count">{{ items|length }}</span> / {{ items|length }}</span>
+      <span class="lookup-hint">💡 Click any row to open that chunk as a card</span>
+    </div>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 165px;">Chunk</th>
+          <th style="width: 112px;">Meaning</th>
+          <th style="width: 23%;">Scene</th>
+          <th class="col-gram" style="width: 27%;">Pattern</th>
+          <th class="col-part" style="width: 62px;">Part</th>
+          <th style="width: 58px;">Drill</th>
+          <th style="width: 104px;">🔊</th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+        {% for it in items %}
+        <tr data-idx="{{ loop.index0 }}" data-part="{{ it.part }}" data-cid="{{ it.id }}"
+            data-hay="{{ it.haystack }}">
+          <td class="en">{{ it.chunk }}<span class="cid">#{{ it.id }}</span></td>
+          <td class="zh">{{ it.zh }}</td>
+          <td class="scene">{{ it.life_scenario }}</td>
+          <td class="gram">{{ it.grammar_html }}</td>
+          <td class="part"><span class="pbadge" style="background: {{ it.part_soft }}; color: {{ it.part_color }};">{{ 'ABCD'[it.part] }}</span></td>
+          <td class="drill" data-drill-cell="{{ it.id }}"></td>
+          <td class="audio">
+            <button data-audio="{{ it.audio_wm }}" title="Chunk, male">♂</button>
+            <button data-audio="{{ it.audio_wf }}" title="Chunk, female">♀</button>
+            <button data-audio="{{ it.audio_sm }}" title="Example sentence">▶</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </section>
+</div>
+
+<audio id="player"></audio>
+
+<div class="modal-overlay" id="summary-modal">
+  <div class="modal">
+    <h2>🎯 Session Done</h2>
+    <div class="sub">Your session stats</div>
+    <div class="stats-grid">
+      <div class="stat total"><div class="n" id="sum-total">0</div><div class="l">Total</div></div>
+      <div class="stat known"><div class="n" id="sum-known">0</div><div class="l">Known ✓</div></div>
+      <div class="stat hesitant"><div class="n" id="sum-hesitant">0</div><div class="l">Uncertain 🤔</div></div>
+      <div class="stat wrong"><div class="n" id="sum-wrong">0</div><div class="l">Blank ✗</div></div>
+    </div>
+    <div class="actions">
+      <button class="primary" id="restart-unknown">🔁 Redo Blank + Uncertain</button>
+      <button id="restart-all">Redo all</button>
+      <a href="index.html">Back to Day {{ '%02d' % day }}</a>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+const ITEMS = {{ items|tojson }};
+const DAY_KEY = 'chunks-d{{ "%02d" % day }}';
+const TRR_KEY = 'toeic-trr-day{{ "%02d" % day }}';
+const player = document.getElementById('player');
+
+let mode = 'study';
+let currentPart = 'all';
+let currentLevels = new Set();
+let queue = [];
+let position = 0;
+let sessionAnswers = [];
+let revealed = false;
+let speakRevealed = false;
+
+/* ── Practice history ───────────────────────────────────────────────────────
+   Read-only view of what Practice already recorded. trr_template.html logs every
+   Chunk Drill and Dictation answer as {kind, correct, cid, ts}, so per-chunk
+   accuracy is derivable here — no second tracker, and nothing to keep in sync.
+   Silently empty until the day has actually been drilled. */
+function loadDrill() {
+  const out = {};
+  let S = null;
+  try { S = JSON.parse(localStorage.getItem(TRR_KEY) || 'null'); } catch (e) { return out; }
+  for (const e of (S && S.log) || []) {
+    if (!e || !e.cid) continue;
+    const r = out[e.cid] || (out[e.cid] = { seq: [], right: 0, wrong: 0, last: null });
+    r.seq.push(!!e.correct);
+    if (e.correct) r.right++; else r.wrong++;
+    r.last = !!e.correct;
+  }
+  return out;
+}
+const DRILL = loadDrill();
+
+function drillOf(idx) { return DRILL[ITEMS[idx].id] || null; }
+function missedInDrill(idx) { const d = drillOf(idx); return !!d && d.wrong > 0; }
+
+/* Last 6 attempts, oldest first — enough to show a trend without becoming a chart. */
+function drillStripHtml(idx) {
+  const d = drillOf(idx);
+  if (!d) return '<span class="none">Not drilled in Practice yet</span>';
+  const dots = d.seq.slice(-6)
+    .map(ok => ok ? '<span class="ok">●</span>' : '<span class="no">✗</span>').join('');
+  return `<span>Practice</span><span class="dots">${dots}</span>` +
+         `<span>${d.right}/${d.right + d.wrong} correct</span>`;
+}
+
+// --- Storage ---
+function keyKnown(idx) { return `${DAY_KEY}-known-${idx}`; }
+function keyLastVerdict(idx) { return `${DAY_KEY}-last-${idx}`; }
+function isKnown(idx) { return localStorage.getItem(keyKnown(idx)) === '1'; }
+function setKnown(idx, v) { localStorage.setItem(keyKnown(idx), v ? '1' : '0'); }
+function getLastVerdict(idx) { return localStorage.getItem(keyLastVerdict(idx)) || null; }
+function setLastVerdict(idx, v) { localStorage.setItem(keyLastVerdict(idx), v); }
+
+function countKnown() {
+  let n = 0;
+  for (let i = 0; i < ITEMS.length; i++) if (isKnown(i)) n++;
+  return n;
+}
+
+// --- Filters ---
+function levelOf(idx) { return getLastVerdict(idx) || 'new'; }
+
+/* 'missed' is an extra axis, not a verdict — it ORs in alongside the verdicts so
+   "Blank + Missed in Practice" reads as a union, the way multi-select implies. */
+function matchesLevel(idx) {
+  if (currentLevels.size === 0) return true;
+  if (currentLevels.has('missed') && missedInDrill(idx)) return true;
+  return currentLevels.has(levelOf(idx));
+}
+function matchesPart(idx) {
+  return currentPart === 'all' || String(ITEMS[idx].part) === currentPart;
+}
+
+function updateLevelCounts() {
+  const c = { new: 0, wrong: 0, hesitant: 0, known: 0, missed: 0 };
+  for (let i = 0; i < ITEMS.length; i++) {
+    if (!matchesPart(i)) continue;
+    c[levelOf(i)]++;
+    if (missedInDrill(i)) c.missed++;
+  }
+  for (const k of ['new', 'wrong', 'hesitant', 'known', 'missed']) {
+    const el = document.getElementById('lc-' + k);
+    if (el) el.textContent = c[k];
+  }
+}
+
+function buildQueue() {
+  let candidates = ITEMS.map((_, i) => i).filter(matchesPart).filter(matchesLevel);
+  for (let i = candidates.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+  }
+  queue = candidates;
+  position = 0;
+  sessionAnswers = [];
+  revealed = false;
+  speakRevealed = false;
+}
+
+// --- Audio ---
+function playAudio(src, btn) {
+  document.querySelectorAll('button.playing').forEach(b => b.classList.remove('playing'));
+  if (player.src.endsWith(src) && !player.paused) { player.pause(); return; }
+  player.src = src; player.play();
+  if (btn) { btn.classList.add('playing'); player.onended = () => btn.classList.remove('playing'); }
+}
+function srcFor(it, tag) {
+  return { wm: it.audio_wm, wf: it.audio_wf, sm: it.audio_sm, sf: it.audio_sf }[tag];
+}
+
+// --- Progress ---
+function updateProgress() {
+  const total = queue.length;
+  document.getElementById('session-idx').textContent = total ? position + 1 : 0;
+  document.getElementById('session-total').textContent = total;
+  document.getElementById('known-count').textContent = countKnown();
+  document.getElementById('progress-fill').style.width = (total ? ((position + 1) / total) * 100 : 0) + '%';
+  const prevBtn = document.getElementById('nav-prev');
+  const nextBtn = document.getElementById('nav-next');
+  const scrubber = document.getElementById('nav-scrubber');
+  prevBtn.disabled = position <= 0;
+  nextBtn.disabled = position >= queue.length - 1;
+  scrubber.max = Math.max(0, queue.length - 1);
+  scrubber.value = position;
+}
+function goPrev() { if (position > 0) { position--; revealed = speakRevealed = false; renderCurrent(); } }
+function goNext() { if (position < queue.length - 1) { position++; revealed = speakRevealed = false; renderCurrent(); } }
+
+function paintPartBadge(el, it) {
+  el.textContent = it.part_icon + ' ' + it.part_name;
+  el.style.setProperty('--pbg', it.part_soft);
+  el.style.setProperty('--pfg', it.part_color);
+}
+
+// --- Study mode ---
+function renderCurrent() {
+  if (mode === 'speak') { renderSpeak(); return; }
+  const card = document.getElementById('study-card');
+  const empty = document.getElementById('study-empty');
+  if (queue.length === 0 || position >= queue.length) {
+    card.hidden = true; empty.hidden = false; updateProgress(); return;
+  }
+  card.hidden = false; empty.hidden = true;
+
+  const idx = queue[position];
+  const it = ITEMS[idx];
+  paintPartBadge(document.getElementById('part-badge'), it);
+  document.getElementById('chunk-id').textContent = '#' + it.id;
+  document.getElementById('word').textContent = it.chunk;
+  document.getElementById('drill-strip').innerHTML = drillStripHtml(idx);
+
+  const btns = document.querySelectorAll('#audio-btns button');
+  btns.forEach(b => {
+    b.classList.remove('playing');
+    b.onclick = () => playAudio(srcFor(it, b.dataset.src), b);
+  });
+  setTimeout(() => playAudio(it.audio_wm, btns[0]), 200);
+
+  revealed = false;
+  document.getElementById('meaning-slot').innerHTML =
+    `<button class="reveal-btn" id="reveal-btn">Show meaning ↓</button>`;
+  document.getElementById('kbd-hint').innerHTML = '<kbd>Space</kbd> reveal';
+  document.getElementById('reveal-btn').onclick = revealAnswer;
+  updateProgress();
+}
+
+/* The four authored fields land here together — this is the only place in the
+   build where life_scenario and family are ever shown. */
+function detailHtml(it) {
+  return `
+    <div class="detail">
+      <div class="row ex">
+        <span class="lbl">Example</span>
+        <div class="en">${it.example_html}</div>
+        <div class="zh">${escapeHtml(it.example_zh)}</div>
+      </div>
+      ${it.life_scenario ? `<div class="row scene"><span class="lbl">💬 When you use it</span>${escapeHtml(it.life_scenario)}</div>` : ''}
+      ${it.family ? `<div class="row fam"><span class="lbl">🌳 Word family</span>${it.family_html}</div>` : ''}
+      ${it.grammar ? `<div class="row gram"><span class="lbl">📐 Pattern</span>${it.grammar_html}</div>` : ''}
+    </div>`;
+}
+
+function verdictHtml(labels) {
+  return `
+    <div class="verdict-btns">
+      <button class="btn-wrong" data-v="wrong">${labels[0]}<span class="num">1</span></button>
+      <button class="btn-hesitant" data-v="hesitant">${labels[1]}<span class="num">2</span></button>
+      <button class="btn-known" data-v="known">${labels[2]}<span class="num">3</span></button>
+    </div>`;
+}
+
+function revealAnswer() {
+  if (revealed || queue.length === 0) return;
+  revealed = true;
+  const it = ITEMS[queue[position]];
+  const slot = document.getElementById('meaning-slot');
+  slot.innerHTML = `<div class="meaning">${escapeHtml(it.zh)}</div>` + detailHtml(it) +
+                   verdictHtml(['Blank ✗', 'Uncertain 🤔', 'Known ✓']);
+  document.getElementById('kbd-hint').innerHTML =
+    '<kbd>1</kbd> Blank · <kbd>2</kbd> Uncertain · <kbd>3</kbd> Known';
+  slot.querySelectorAll('.verdict-btns button').forEach(b => { b.onclick = () => handleVerdict(b.dataset.v); });
+}
+
+// --- Speak mode ---
+/* Cue = Chinese meaning + the scene + the pattern. The pattern is deliberately
+   given up front: production fails on `be accustomed TO + V-ing`, not on the
+   words, so withholding it would test the wrong thing. */
+function renderSpeak() {
+  const card = document.getElementById('speak-card');
+  const empty = document.getElementById('speak-empty');
+  if (queue.length === 0 || position >= queue.length) {
+    card.hidden = true; empty.hidden = false; updateProgress(); return;
+  }
+  card.hidden = false; empty.hidden = true;
+
+  const it = ITEMS[queue[position]];
+  paintPartBadge(document.getElementById('speak-part-badge'), it);
+  document.getElementById('speak-cue-zh').textContent = it.zh;
+  document.getElementById('speak-cue-scene').textContent = it.life_scenario || '';
+  document.getElementById('speak-cue-gram-slot').innerHTML =
+    it.grammar_bare ? `<div class="cue-gram">📐 ${escapeHtml(it.grammar_bare)}</div>` : '';
+
+  speakRevealed = false;
+  const slot = document.getElementById('speak-slot');
+  slot.innerHTML = `
+    <div class="cue-prompt">
+      <span class="big">🎤 Say the English aloud</span>
+      <span>(recall from memory, then reveal)</span>
+    </div>
+    <button class="said-btn" id="said-btn">Done speaking ↓</button>`;
+  document.getElementById('speak-hint').innerHTML = '<kbd>Space</kbd> reveal';
+  document.getElementById('said-btn').onclick = speakReveal;
+  updateProgress();
+}
+
+function speakReveal() {
+  if (speakRevealed || queue.length === 0) return;
+  speakRevealed = true;
+  const it = ITEMS[queue[position]];
+  const slot = document.getElementById('speak-slot');
+  slot.innerHTML = `
+    <div class="reveal-en">${escapeHtml(it.chunk)}</div>
+    <div class="reveal-zh">${escapeHtml(it.zh)}</div>
+    <div class="audio-btns">
+      <button data-src="wm">👨 Chunk</button>
+      <button data-src="wf">👩 Chunk</button>
+      <span class="sep"></span>
+      <button data-src="sm">👨 Sentence</button>
+      <button data-src="sf">👩 Sentence</button>
+    </div>
+    <div class="drill-strip">${drillStripHtml(queue[position])}</div>
+    ${detailHtml(it)}
+    <div class="self-check-label">How did it come out?</div>
+    ${verdictHtml(['Blank', 'Struggled', 'Fluent ✓'])}`;
+  document.getElementById('speak-hint').innerHTML =
+    '<kbd>1</kbd> Blank · <kbd>2</kbd> Struggled · <kbd>3</kbd> Fluent';
+
+  const btns = slot.querySelectorAll('.audio-btns button');
+  btns.forEach(b => { b.onclick = () => playAudio(srcFor(it, b.dataset.src), b); });
+  setTimeout(() => playAudio(it.audio_wm, btns[0]), 150);
+  slot.querySelectorAll('.verdict-btns button').forEach(b => { b.onclick = () => handleVerdict(b.dataset.v); });
+}
+
+// --- Verdict ---
+function handleVerdict(v) {
+  const idx = queue[position];
+  const existing = sessionAnswers.findIndex(a => a.idx === idx);
+  if (existing !== -1) sessionAnswers[existing].verdict = v;
+  else sessionAnswers.push({ idx, verdict: v });
+  setLastVerdict(idx, v);
+  updateLevelCounts();
+  if (v === 'known') {
+    setKnown(idx, true);
+  } else {
+    setKnown(idx, false);
+    if (existing === -1) {
+      const gap = v === 'hesitant' ? 10 : 3;
+      queue.splice(Math.min(position + gap, queue.length), 0, idx);
+    }
+  }
+  if (position < queue.length - 1) {
+    position++; revealed = speakRevealed = false; renderCurrent();
+  } else {
+    showSummary();
+  }
+}
+
+function showSummary() {
+  const n = v => sessionAnswers.filter(a => a.verdict === v).length;
+  document.getElementById('sum-total').textContent = sessionAnswers.length;
+  document.getElementById('sum-known').textContent = n('known');
+  document.getElementById('sum-hesitant').textContent = n('hesitant');
+  document.getElementById('sum-wrong').textContent = n('wrong');
+  document.getElementById('summary-modal').classList.add('show');
+}
+
+// --- Mode toggle ---
+document.querySelectorAll('.mode-toggle button').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('.mode-toggle button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    mode = b.dataset.mode;
+    document.body.className = 'mode-' + mode;
+    if (mode === 'lookup') applyLookupFilter();
+    else { buildQueue(); renderCurrent(); }
+  };
+});
+
+function applyFilters() {
+  updateLevelCounts();
+  if (mode === 'lookup') applyLookupFilter();
+  else { buildQueue(); renderCurrent(); }
+}
+
+document.querySelectorAll('.part-filter:not(.level-filter) button').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('.part-filter:not(.level-filter) button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    currentPart = b.dataset.part;
+    applyFilters();
+  };
+});
+
+document.querySelectorAll('.level-filter button').forEach(b => {
+  b.onclick = () => {
+    const lv = b.dataset.level;
+    if (lv === 'all') currentLevels.clear();
+    else if (currentLevels.has(lv)) currentLevels.delete(lv);
+    else currentLevels.add(lv);
+    document.querySelectorAll('.level-filter button').forEach(x => {
+      const k = x.dataset.level;
+      x.classList.toggle('active', k === 'all' ? currentLevels.size === 0 : currentLevels.has(k));
+    });
+    applyFilters();
+  };
+});
+
+// --- Lookup ---
+const rows = Array.from(document.querySelectorAll('#tbody tr'));
+const searchInput = document.getElementById('search');
+const visibleCount = document.getElementById('visible-count');
+
+function paintDrillCells() {
+  rows.forEach(r => {
+    const cell = r.querySelector('td.drill');
+    const d = DRILL[r.dataset.cid];
+    if (!d) { cell.innerHTML = '<span style="opacity:.35">—</span>'; return; }
+    const color = d.wrong > 0 ? 'var(--wrong)' : 'var(--accent)';
+    cell.innerHTML = `<span style="color:${color}">${d.right}/${d.right + d.wrong}</span>`;
+  });
+}
+
+function applyLookupFilter() {
+  const q = searchInput.value.trim().toLowerCase();
+  let visible = 0;
+  rows.forEach(r => {
+    const idx = parseInt(r.dataset.idx, 10);
+    let show = matchesPart(idx) && matchesLevel(idx);
+    if (show && q) show = r.dataset.hay.includes(q);
+    r.classList.toggle('hidden', !show);
+    r.classList.toggle('known-row', isKnown(idx));
+    if (show) visible++;
+  });
+  visibleCount.textContent = visible;
+}
+searchInput.addEventListener('input', applyLookupFilter);
+document.querySelectorAll('td.audio button[data-audio]').forEach(btn => {
+  btn.addEventListener('click', e => { e.stopPropagation(); playAudio(btn.dataset.audio, btn); });
+});
+rows.forEach(r => r.addEventListener('click', () => jumpToChunk(parseInt(r.dataset.idx, 10))));
+
+function jumpToChunk(idx) {
+  mode = 'study';
+  document.querySelectorAll('.mode-toggle button').forEach(b => b.classList.toggle('active', b.dataset.mode === 'study'));
+  document.body.className = 'mode-study';
+  if (!queue.length) buildQueue();
+  queue = queue.filter(i => i !== idx);
+  queue.splice(position, 0, idx);
+  revealed = speakRevealed = false;
+  renderCurrent();
+}
+
+// --- Summary actions ---
+document.getElementById('restart-unknown').onclick = () => {
+  document.getElementById('summary-modal').classList.remove('show');
+  const wrong = sessionAnswers.filter(a => a.verdict !== 'known').map(a => a.idx);
+  for (let i = wrong.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [wrong[i], wrong[j]] = [wrong[j], wrong[i]];
+  }
+  queue = wrong; position = 0; sessionAnswers = [];
+  revealed = speakRevealed = false;
+  renderCurrent();
+};
+document.getElementById('restart-all').onclick = () => {
+  document.getElementById('summary-modal').classList.remove('show');
+  updateLevelCounts(); buildQueue(); renderCurrent();
+};
+
+// --- Nav ---
+document.getElementById('nav-prev').onclick = goPrev;
+document.getElementById('nav-next').onclick = goNext;
+document.getElementById('nav-scrubber').addEventListener('input', e => {
+  position = Math.min(parseInt(e.target.value, 10) || 0, Math.max(0, queue.length - 1));
+  revealed = speakRevealed = false;
+  renderCurrent();
+});
+
+// --- Keyboard ---
+document.addEventListener('keydown', e => {
+  if (document.getElementById('summary-modal').classList.contains('show')) return;
+  if (e.target.tagName === 'INPUT') return;
+  if (mode === 'lookup' || queue.length === 0) return;
+  if (e.key === 'ArrowLeft') { e.preventDefault(); goPrev(); return; }
+  if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); return; }
+
+  const isReveal = (mode === 'study' && revealed) || (mode === 'speak' && speakRevealed);
+  const canReveal = (mode === 'study' && !revealed) || (mode === 'speak' && !speakRevealed);
+  if ((e.key === ' ' || e.key === 'ArrowDown' || e.key === 'Enter') && canReveal) {
+    e.preventDefault();
+    if (mode === 'study') revealAnswer(); else speakReveal();
+  } else if (isReveal) {
+    if (e.key === '1') { e.preventDefault(); handleVerdict('wrong'); }
+    else if (e.key === '2') { e.preventDefault(); handleVerdict('hesitant'); }
+    else if (e.key === '3') { e.preventDefault(); handleVerdict('known'); }
+  }
+});
+
+function escapeHtml(s) {
+  return (s || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+// --- Init ---
+updateLevelCounts();
+buildQueue();
+renderCurrent();
+paintDrillCells();
+applyLookupFilter();
+</script>
+</body>
+</html>

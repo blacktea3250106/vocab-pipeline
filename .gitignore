@@ -1,0 +1,29 @@
+# secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# environments and caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+node_modules/
+.cache/
+.DS_Store
+
+# build outputs (regenerate locally; samples/ holds the committed examples)
+course/output/
+video/out/
+video/public/audio/
+*.mp3
+*.apkg
+*.mp4
+*.zip
+
+# private study material: book photos and anything extracted from them
+/pages/
+extract/pages/
+progress/

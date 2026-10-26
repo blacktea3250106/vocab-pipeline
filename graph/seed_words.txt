@@ -1,0 +1,12 @@
+# Sample seed words for `add` (needs ANTHROPIC_API_KEY). Small clusters make links easy to judge.
+# deadlines and timing
+schedule
+deadline
+postpone
+# paperwork
+submit
+approve
+reject
+# people
+colleague
+client

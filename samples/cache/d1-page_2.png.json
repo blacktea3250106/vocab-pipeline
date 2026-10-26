@@ -1,0 +1,125 @@
+{
+  "day": "Day 01",
+  "words": [
+    {
+      "index": 6,
+      "word": "budget",
+      "pos": "n.",
+      "zh": "預算",
+      "example": {
+        "en": "We need to stay within the budget this quarter.",
+        "zh": "這一季我們必須控制在預算內。"
+      },
+      "extraExamples": [],
+      "related": [],
+      "star": 2
+    },
+    {
+      "index": 7,
+      "word": "client",
+      "pos": "n.",
+      "zh": "客戶，委託人",
+      "example": {
+        "en": "The client asked for a short demo before signing.",
+        "zh": "客戶在簽約前要求一個簡短的展示。"
+      },
+      "extraExamples": [],
+      "related": [
+        {
+          "word": "customer",
+          "pos": "n.",
+          "zh": "顧客"
+        }
+      ],
+      "star": 2
+    },
+    {
+      "index": 8,
+      "word": "review",
+      "pos": "v./n.",
+      "zh": "審查，檢閱；（n.）評論",
+      "example": {
+        "en": "Could you review my draft before lunch?",
+        "zh": "你可以在午餐前看一下我的草稿嗎？"
+      },
+      "extraExamples": [],
+      "related": [],
+      "star": 2
+    },
+    {
+      "index": 9,
+      "word": "deliver",
+      "pos": "v.",
+      "zh": "遞送；交付",
+      "example": {
+        "en": "The package will be delivered to the front desk.",
+        "zh": "包裹會被送到櫃台。"
+      },
+      "extraExamples": [],
+      "related": [
+        {
+          "word": "delivery",
+          "pos": "n.",
+          "zh": "遞送"
+        }
+      ],
+      "star": 2
+    },
+    {
+      "index": 10,
+      "word": "available",
+      "pos": "adj.",
+      "zh": "有空的；可取得的",
+      "example": {
+        "en": "Is the meeting room available this afternoon?",
+        "zh": "今天下午會議室有空嗎？"
+      },
+      "extraExamples": [],
+      "related": [
+        {
+          "word": "availability",
+          "pos": "n.",
+          "zh": "可用性"
+        },
+        {
+          "word": "unavailable",
+          "pos": "adj.",
+          "zh": "沒空的（反義）"
+        }
+      ],
+      "star": 3
+    }
+  ],
+  "notes": [
+    {
+      "word": "available",
+      "kind": "易混淆單字",
+      "heading": "available / avail",
+      "body": "available 是形容詞「有空的、可取得的」；avail 多用在 avail oneself of（利用）。"
+    }
+  ],
+  "lists": [
+    {
+      "level": "t800",
+      "section": "RC",
+      "words": [
+        {
+          "word": "agenda",
+          "pos": "n.",
+          "zh": "議程"
+        },
+        {
+          "word": "attachment",
+          "pos": "n.",
+          "zh": "附件"
+        },
+        {
+          "word": "reimburse",
+          "pos": "v.",
+          "zh": "核銷，償還（費用）"
+        }
+      ]
+    }
+  ],
+  "continued": false
+}

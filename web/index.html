@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TOEIC Word Cards</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="shell" id="shell">
+<main class="wrap">
+
+  <header class="head">
+    <div>
+      <h1>TOEIC Word Cards</h1>
+      <p>Tap a card: it says the word and opens the full note on the right. A drill tests <b>whatever is filtered on screen</b> — pick Target 900 and you drill only that set. Four options, distractors drawn from lookalikes and the same word family, and the clock counts: a right answer still has to be fast to count.</p>
+    </div>
+    <div class="head-actions">
+      <button class="icon-btn" id="shuffle" title="Shuffle" aria-label="Shuffle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="m15 15 6 6"/><path d="M4 4l5 5"/></svg>
+      </button>
+      <button class="icon-btn" id="theme" title="Light / dark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="meter" id="meter"></div>
+  <div class="legend" id="legend"></div>
+  <p class="hint">New: not tested yet · Learning: missed it, or got it slowly — back tomorrow · Familiar: right within 3.5s, gaps stretch to 3 → 7 → 16 days · Mastered: the gap has reached 35 days, so it is put away. A miss is not a stage — it drops the word back to Learning and records a slip.</p>
+
+  <div class="bar">
+    <button class="cta sm" id="drill-btn">Drill <b id="drill-n">0</b> words
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13"/><path d="m12 5 7 7-7 7"/></svg>
+    </button>
+    <span class="vsep"></span>
+
+    <label class="picker" id="day-picker">
+      <select id="day"><option value="all">All</option></select>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+    </label>
+
+    <div class="tiers">
+      <button class="chip sm" data-tier="all" aria-pressed="true">All <small>0</small></button>
+      <button class="chip sm t-basic" data-tier="basic">Basic <small>0</small></button>
+      <button class="chip sm t-core" data-tier="core">Core <small>0</small></button>
+      <button class="chip sm t-t800" data-tier="t800">Target 800 <small>0</small></button>
+      <button class="chip sm t-t900" data-tier="t900">Target 900 <small>0</small></button>
+    </div>
+
+    <span class="vsep"></span>
+
+    <button class="chip sm quick" data-quick="today" id="quick-today">Due today <small>0</small></button>
+    <button class="chip sm quick" data-quick="lapse" id="quick-lapse">Often missed <small>0</small></button>
+    <button class="chip sm quick" data-quick="noted" id="quick-noted">Noted <small>0</small></button>
+
+    <label class="picker">
+      <select id="stage">
+        <option value="all" data-label="All stages">All stages</option>
+        <option value="new" data-label="New">New</option>
+        <option value="learning" data-label="Learning">Learning</option>
+        <option value="familiar" data-label="Familiar">Familiar</option>
+        <option value="mastered" data-label="Mastered">Mastered</option>
+      </select>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+    </label>
+
+    <label class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Search…" autocomplete="off" />
+      <kbd>/</kbd>
+    </label>
+
+    <div class="seg">
+      <button data-view="cards" aria-pressed="true">Cards</button>
+      <button data-view="list" aria-pressed="false">List</button>
+    </div>
+  </div>
+
+  <div id="out" class="grid"></div>
+</main>
+
+<div class="scrim" id="scrim"></div>
+
+<aside class="panel" id="drawer" aria-label="Full word note" aria-hidden="true">
+  <div class="panel-inner">
+    <div class="drawer-bar">
+      <span class="t" id="d-title"></span>
+      <span class="sp">
+        <button class="icon-btn" id="d-prev" title="Previous" aria-label="Previous">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5 8 12l7 7"/></svg>
+        </button>
+        <button class="icon-btn" id="d-next" title="Next" aria-label="Next">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
+        </button>
+        <button class="icon-btn" id="d-say" title="Say it" aria-label="Say it">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+        </button>
+        <button class="icon-btn" id="d-close" title="Close (Esc)" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </span>
+    </div>
+    <div class="marks" id="d-marks"></div>
+    <div class="sheet" id="d-body"></div>
+  </div>
+</aside>
+</div>
+
+<div class="drill" id="drill">
+  <div class="dr-top">
+    <span class="step" id="dr-step"></span>
+    <span class="dir" id="dr-dir"></span>
+    <span class="scope" id="dr-scope"></span>
+    <button class="icon-btn" id="dr-quit" title="Quit drill (Esc)" aria-label="Quit drill">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+  </div>
+  <div class="dr-track"><i id="dr-bar"></i></div>
+  <div class="dr-body" id="dr-body">
+    <div class="dr-q" id="dr-prompt"></div>
+    <div class="dr-options" id="dr-options"></div>
+    <div class="dr-after" id="dr-after"></div>
+  </div>
+</div>
+
+<!-- Data files: one line per day written by extract/parse.mjs, plus the detail notes. -->
+<script src="data/day01.js"></script>
+<script src="data/detail.js"></script>
+<script src="app.js"></script>
+<script src="drill.js"></script>
+</body>
+</html>

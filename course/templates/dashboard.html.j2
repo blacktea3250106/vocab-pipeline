@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TOEIC Dashboard</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --card: #fff; --ink: #1a1a1a; --ink-soft: #6b6b6b; --ink-faint: #9a978f;
+    --accent: #2a7a4f; --accent-soft: #e5f0ea; --accent-strong: #1e5e3d; --accent-light: #7fb69a;
+    --wrong: #c0392b; --wrong-soft: #fdeae7;
+    --gold: #b8860b; --gold-soft: #fef4d6;
+    --flame: #e07a2f;
+    --idle: #e8e6df;
+    --border: #e4e0d8;
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
+    --shadow: 0 1px 2px rgba(0,0,0,0.03), 0 3px 10px rgba(0,0,0,0.04);
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif;
+    background: var(--bg); color: var(--ink); margin: 0; padding: 24px 20px 80px; line-height: 1.5;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; }
+
+  .topbar { display: flex; align-items: baseline; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+  .topbar h1 { margin: 0; font-size: 18px; color: var(--accent); letter-spacing: -0.2px; }
+  .topbar .sub { color: var(--ink-faint); font-size: 12px; font-family: var(--mono); }
+
+  section { background: var(--card); padding: 20px 22px; border-radius: 14px;
+    box-shadow: var(--shadow); margin-bottom: 14px; border: 1px solid var(--border); }
+  section h2 { margin: 0 0 3px; font-size: 14px; color: var(--ink); font-weight: 700; }
+  section .h2-sub { color: var(--ink-faint); font-size: 12px; margin-bottom: 14px; }
+
+  /* ══ TIER 0 — TODAY ═══════════════════════════════════════════════ */
+  .today { padding: 24px; }
+  .today-grid { display: grid; grid-template-columns: 168px 1fr; gap: 26px; align-items: center; }
+  @media (max-width: 620px) { .today-grid { grid-template-columns: 1fr; gap: 18px; justify-items: center; text-align: center; } }
+
+  .ring-wrap { position: relative; width: 168px; height: 168px; }
+  .ring { width: 168px; height: 168px; }
+  .ring-track { fill: none; stroke: var(--idle); stroke-width: 13; }
+  .ring-fill {
+    fill: none; stroke: var(--accent); stroke-width: 13; stroke-linecap: round;
+    transition: stroke-dashoffset 1s cubic-bezier(.22,.9,.28,1), stroke .6s ease;
+  }
+  .ring-fill.close { stroke: var(--flame); }   /* goal-gradient: final stretch */
+  .ring-center {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 1px;
+  }
+  .ring-center .rc-num { font-family: var(--mono); font-size: 30px; font-weight: 700; line-height: 1; }
+  .ring-center .rc-den { font-family: var(--mono); font-size: 13px; color: var(--ink-faint); }
+  .ring-center .rc-cap { font-size: 11px; color: var(--ink-soft); margin-top: 3px;
+    text-transform: uppercase; letter-spacing: .6px; }
+  .ring-center .rc-big { font-size: 30px; }
+
+  .today-body .t-head { font-size: 20px; font-weight: 700; margin-bottom: 3px; letter-spacing: -0.3px; }
+  .today-body .t-nudge { font-size: 13px; color: var(--ink-soft); margin-bottom: 14px; }
+  .today-body .t-nudge b { color: var(--flame); }
+
+  .split-bars { display: flex; flex-direction: column; gap: 9px; margin-bottom: 16px; max-width: 380px; }
+  .sb { display: grid; grid-template-columns: 56px 1fr 58px; align-items: center; gap: 9px; font-size: 12px; }
+  .sb .sb-l { color: var(--ink-soft); }
+  .sb .sb-track { height: 8px; background: var(--idle); border-radius: 4px; overflow: hidden; }
+  .sb .sb-fill { height: 100%; border-radius: 4px; width: 0;
+    transition: width 1s cubic-bezier(.22,.9,.28,1) .15s; }
+  .sb.new .sb-fill { background: var(--accent); }
+  .sb.rev .sb-fill { background: var(--gold); }
+  .sb .sb-n { font-family: var(--mono); color: var(--ink-soft); text-align: right; font-size: 11px; }
+  .sb.done .sb-n { color: var(--accent); font-weight: 700; }
+
+  .cta {
+    display: inline-flex; align-items: center; gap: 9px; background: var(--accent); color: #fff;
+    padding: 12px 20px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 14px;
+    box-shadow: 0 2px 8px rgba(42,122,79,.25); transition: background .12s, box-shadow .12s;
+  }
+  .cta:hover { background: var(--accent-strong); box-shadow: 0 4px 14px rgba(42,122,79,.32); }
+  .cta .cta-sub { font-weight: 400; opacity: .82; font-size: 12px; }
+  .cta.ghost { background: #fff; color: var(--accent); border: 1.5px solid var(--accent); box-shadow: none; }
+  .cta.ghost:hover { background: var(--accent-soft); }
+
+  /* Streak strip */
+  .streak-strip {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);
+  }
+  .flame { display: flex; align-items: baseline; gap: 7px; }
+  .flame .fi { font-size: 22px; line-height: 1; }
+  .flame .fn { font-family: var(--mono); font-size: 22px; font-weight: 700; }
+  .flame .fl { font-size: 12px; color: var(--ink-soft); }
+  .flame.cold .fi { filter: grayscale(1); opacity: .4; }
+  .week-dots { display: flex; gap: 5px; align-items: center; }
+  .wd { width: 11px; height: 11px; border-radius: 50%; background: var(--idle); }
+  .wd.on { background: var(--accent); }
+  .wd.frozen { background: #8fb8d8; }
+  .wd.today { box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px var(--accent-light); }
+  .freeze-chip {
+    font-size: 11px; color: #35709c; background: #e8f2f9; border: 1px solid #cfe3f0;
+    padding: 2px 9px; border-radius: 20px; font-weight: 600;
+  }
+  .streak-note { font-size: 11px; color: var(--ink-faint); }
+
+  /* ══ PACE — one line, no chart ════════════════════════════════════ */
+  /* A single projected number is a stat line, not a plot: charting it would be
+     a one-bar bar chart. It sits above the map because "will I get there" is
+     the question the map itself cannot answer. */
+  .pace { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px;
+    font-size: 13px; color: var(--ink-soft); margin-bottom: 14px;
+    padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .pace b { font-family: var(--mono); color: var(--ink); font-weight: 700; }
+  .pace .warn { color: var(--flame); font-weight: 600; }
+
+  /* ══ SPEED × ACCURACY — diverging bars ════════════════════════════ */
+  /* Two poles that have to read as opposite under colour-vision deficiency.
+     Green↔red is the obvious pick and the wrong one: ΔE 7.4 for deuteranopes,
+     inside the 6–8 floor band. Green↔orange measures ΔE 9.7 and passes clean.
+
+     The orange sits at 2.92:1 on this surface, just under the 3:1 line. Darken
+     it and contrast passes but CVD separation collapses to 5.8 — a hard fail,
+     where a contrast warning is answerable with visible labels. Every row
+     therefore carries its accuracy and share as text, and the legend names both
+     colours, so nothing here is encoded by hue alone. Do not darken it. */
+  :root { --dv-right: #2a7a4f; --dv-wrong: #e07a2f; }
+  .dv-legend { display: flex; align-items: center; gap: 16px; font-size: 12px;
+    color: var(--ink-soft); margin-bottom: 12px; }
+  .dv-key { display: inline-flex; align-items: center; gap: 6px; }
+  .dv-key i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  .dv-period { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--ink-faint); }
+  .dv-row { display: grid; grid-template-columns: 104px 1fr 46px; align-items: center;
+    gap: 10px; margin-bottom: 7px; }
+  @media (max-width: 620px) { .dv-row { grid-template-columns: 80px 1fr 42px; gap: 7px; } }
+  .dv-lab { font-size: 12px; color: var(--ink-soft); text-align: right; }
+  .dv-lab small { display: block; font-size: 10px; color: var(--ink-faint); }
+  /* The centre line is the zero point both directions grow from; without it the
+     two halves read as one bar of mixed colour. */
+  .dv-track { display: flex; align-items: stretch; height: 20px;
+    border-left: 0; position: relative; }
+  .dv-track::before { content: ''; position: absolute; left: 50%; top: -2px; bottom: -2px;
+    width: 1px; background: var(--border); }
+  .dv-half { flex: 1; display: flex; }
+  .dv-half.l { justify-content: flex-end; }
+  .dv-half.r { justify-content: flex-start; }
+  .dv-half i { display: block; height: 100%; min-width: 0; }
+  /* 4px rounded ends on the outer edge only — the inner edge is the baseline. */
+  .dv-half.l i { border-radius: 4px 0 0 4px; background: var(--dv-wrong); margin-right: 1px; }
+  .dv-half.r i { border-radius: 0 4px 4px 0; background: var(--dv-right); margin-left: 1px; }
+  .dv-share { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); }
+  .dv-note { font-size: 12px; color: var(--ink-soft); margin-top: 12px; line-height: 1.65; }
+  .dv-note b { color: var(--ink); }
+
+  /* ══ HEATMAP — 30-day journey ═════════════════════════════════════ */
+  .heatmap { display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px; }
+  @media (max-width: 620px) { .heatmap { grid-template-columns: repeat(6, 1fr); } }
+  .hm-cell {
+    aspect-ratio: 1; border-radius: 9px; background: var(--idle);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: 10px; color: var(--ink-faint); font-family: var(--mono);
+    text-decoration: none; padding: 5px 2px; border: 2px solid transparent;
+    transition: border-color .12s, box-shadow .12s;
+  }
+  .hm-cell.done { color: #fff; font-weight: 700; }
+  .hm-cell:hover { border-color: var(--ink); box-shadow: 0 2px 10px rgba(0,0,0,.14); }
+  .hm-cell.locked { opacity: .55; }
+  .hm-cell .hm-emoji { font-size: 19px; line-height: 1; margin-bottom: 3px; filter: grayscale(.5); opacity: .8; }
+  .hm-cell.done .hm-emoji { filter: none; opacity: 1; }
+  .hm-cell .day-n { font-size: 9px; opacity: .75; letter-spacing: .3px; }
+  .hm-cell .hm-pct { font-size: 10px; font-weight: 700; margin-top: 1px; }
+  .hm-cell.next { border-color: var(--flame); box-shadow: 0 0 0 3px rgba(224,122,47,.18); }
+  .hm-legend { display: flex; gap: 7px; align-items: center; font-size: 11px;
+    color: var(--ink-faint); margin-top: 12px; flex-wrap: wrap; }
+  .hm-legend .swatch { width: 12px; height: 12px; border-radius: 3px; }
+  .hm-legend .sep { color: var(--border); }
+
+  /* ══ TODAY'S WINS ═════════════════════════════════════════════════ */
+  .wins { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .win {
+    display: flex; align-items: center; gap: 11px; padding: 13px 14px;
+    background: var(--accent-soft); border-radius: 10px; border: 1px solid #d3e5db;
+  }
+  .win .wi { font-size: 21px; line-height: 1; }
+  .win .wn { font-family: var(--mono); font-size: 19px; font-weight: 700; line-height: 1.1; }
+  .win .wl { font-size: 11px; color: var(--ink-soft); line-height: 1.3; }
+  .win.gold { background: var(--gold-soft); border-color: #ecdcae; }
+  .win.flat { background: #fbfaf7; border-color: var(--border); }
+  .win.flat .wn { color: var(--ink-faint); }
+
+  .cold-start { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .cold-start .cs-emoji { font-size: 30px; }
+  .cold-start .cs-t { font-size: 14px; font-weight: 700; }
+  .cold-start .cs-s { font-size: 12px; color: var(--ink-soft); }
+
+  /* ══ MEMORY BANK ══════════════════════════════════════════════════ */
+  .bank-bar {
+    display: flex; height: 30px; border-radius: 8px; overflow: hidden;
+    background: var(--idle); border: 1px solid var(--border);
+  }
+  .bank-seg { height: 100%; width: 0; transition: width 1.1s cubic-bezier(.22,.9,.28,1) .2s; }
+  .bank-seg.solid    { background: var(--accent); }
+  .bank-seg.learning { background: var(--accent-light); }
+  .bank-seg.fading   { background: var(--gold); }
+
+  .bank-legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: 8px; margin-top: 14px; }
+  .bl { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 8px; background: #fbfaf7; }
+  .bl .sw { width: 11px; height: 11px; border-radius: 3px; flex-shrink: 0; }
+  .bl .bl-l { font-size: 12px; color: var(--ink-soft); flex-grow: 1; }
+  .bl .bl-n { font-family: var(--mono); font-size: 15px; font-weight: 700; }
+  .bl .bl-d { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--accent); }
+  .bl .bl-d.down { color: var(--wrong); }
+
+  .bank-foot {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); flex-wrap: wrap;
+  }
+  .spark-label { font-size: 12px; color: var(--ink-soft); }
+  .spark-label b { font-family: var(--mono); color: var(--accent); font-size: 15px; }
+  .spark { width: 190px; height: 40px; }
+  .spark path.l { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
+  .spark path.a { fill: var(--accent-soft); }
+  .spark circle { fill: var(--accent); }
+
+  /* ══ NEXT ACTIONS ═════════════════════════════════════════════════ */
+  .act { display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+    border-radius: 10px; background: #fbfaf7; border: 1px solid var(--border);
+    margin-bottom: 8px; text-decoration: none; color: inherit; transition: border-color .12s, background .12s; }
+  .act:hover { border-color: var(--accent); background: #f7faf8; }
+  .act.urgent { background: var(--gold-soft); border-color: #ecdcae; }
+  .act.urgent:hover { border-color: var(--gold); }
+  .act .ac-i { font-size: 19px; }
+  .act .ac-t { font-size: 13px; font-weight: 700; }
+  .act .ac-s { font-size: 11px; color: var(--ink-soft); }
+  .act .ac-go { margin-left: auto; font-size: 12px; color: var(--accent); font-weight: 700; white-space: nowrap; }
+  .act.urgent .ac-go { color: var(--gold); }
+
+  .weak-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .weak-chip {
+    font-family: var(--mono); font-size: 11px; padding: 4px 9px; border-radius: 20px;
+    background: var(--wrong-soft); color: var(--wrong); border: 1px solid #f4d3cd;
+    text-decoration: none; font-weight: 600;
+  }
+  .weak-chip:hover { background: var(--wrong); color: #fff; }
+  .weak-chip .wc-n { opacity: .7; font-weight: 400; margin-left: 3px; }
+
+  .empty { padding: 18px; text-align: center; color: var(--ink-faint); font-size: 12px;
+    background: #fbfaf7; border-radius: 8px; }
+
+  /* ══ COLLAPSED STATS ══════════════════════════════════════════════ */
+  details.stats { background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    box-shadow: var(--shadow); margin-bottom: 14px; padding: 0; }
+  details.stats > summary {
+    cursor: pointer; padding: 16px 22px; font-size: 13px; font-weight: 700; color: var(--ink-soft);
+    display: flex; align-items: center; gap: 9px; list-style: none;
+  }
+  details.stats > summary::-webkit-details-marker { display: none; }
+  details.stats > summary::before { content: '▸'; color: var(--ink-faint); }
+  details.stats[open] > summary::before { content: '▾'; }
+  details.stats > summary .s-hint { margin-left: auto; font-weight: 400; font-size: 11px; color: var(--ink-faint); }
+  details.stats .s-body { padding: 0 22px 20px; }
+  details.stats .s-block { padding-top: 18px; margin-top: 18px; border-top: 1px solid var(--border); }
+  details.stats .s-block:first-child { padding-top: 0; margin-top: 0; border-top: none; }
+  details.stats h3 { margin: 0 0 3px; font-size: 13px; font-weight: 700; }
+  details.stats .h3-sub { color: var(--ink-faint); font-size: 11.5px; margin-bottom: 12px; }
+  .kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+  .kv .kvi { background: #fbfaf7; border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px; }
+  .kv .kvi .k { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .5px; }
+  .kv .kvi .v { font-family: var(--mono); font-size: 19px; font-weight: 700; margin-top: 2px; }
+
+  /* ══ THE DAYS ═════════════════════════════════════════════════════ */
+  .day-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+  .dl { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px;
+    background: #fbfaf7; border: 1px solid var(--border); text-decoration: none; color: inherit;
+    transition: border-color .12s, background .12s; }
+  .dl:hover { border-color: var(--accent); background: #f7faf8; }
+  .dl .dl-i { font-size: 18px; }
+  .dl .dl-n { font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); }
+  .dl .dl-t { font-size: 12.5px; font-weight: 600; }
+  .dl .dl-c { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--ink-faint); }
+
+  /* ══ V-ING ════════════════════════════════════════════════════════
+     `.vb` is the slot the quiz hides — the whole point of the section is that
+     you produce the form before you see it, so it is blanked, not dimmed. */
+  #ving .vg-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 8px; }
+  #ving .vg-count { font-size: 12px; color: var(--ink-soft); }
+  #ving .vg-count b { font-family: var(--mono); font-size: 16px; color: var(--accent); }
+  #ving .vg-quiz { font-size: 12px; color: var(--ink-soft); display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+  #ving .vg-reset { font: inherit; font-size: 11px; margin-left: auto; padding: 4px 10px;
+    border: 1px solid var(--border); border-radius: 7px; background: transparent; color: var(--ink-faint); cursor: pointer; }
+  #ving .vg-reset:hover { color: var(--wrong); border-color: var(--wrong); }
+  #ving .vg-track { height: 6px; background: var(--idle); border-radius: 3px; overflow: hidden; margin-bottom: 14px; }
+  #ving .vg-fill { display: block; height: 100%; width: 0; background: var(--accent);
+    border-radius: 3px; transition: width .5s cubic-bezier(.22,.9,.28,1); }
+
+  #ving .vg-tabs { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 14px; }
+  #ving .vg-tab { font: inherit; font-size: 12px; padding: 5px 11px; border: 1px solid var(--border);
+    background: var(--card); color: var(--ink-soft); border-radius: 7px; cursor: pointer; font-weight: 600; }
+  #ving .vg-tab:hover { background: #f3f1eb; }
+  #ving .vg-tab.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  #ving .vg-pane { display: none; } #ving .vg-pane.on { display: block; }
+  #ving .vg-sub { font-size: 12px; color: var(--ink-faint); margin-bottom: 12px; }
+
+  .vg-row { display: flex; align-items: flex-start; gap: 9px; padding: 8px 0;
+    border-bottom: 1px solid #f0eee9; font-size: 13.5px; line-height: 1.6; }
+  .vg-row:last-child { border-bottom: none; }
+  .vg-row.solid { opacity: .55; }
+  .vg-txt { flex: 1; min-width: 0; }
+  .vg-b { display: block; margin-top: 3px; }
+  .vg-zh { display: block; color: var(--ink-faint); font-size: 12px; }
+  .vg-flag { font-size: 10.5px; font-weight: 700; color: var(--flame);
+    background: #fdf0e6; border-radius: 4px; padding: 1px 6px; margin-left: 5px; }
+  .vg-audio, .vg-solid { font: inherit; flex: 0 0 auto; width: 26px; height: 26px; cursor: pointer;
+    border: 1px solid var(--border); border-radius: 7px; background: var(--card);
+    color: var(--ink-faint); font-size: 12px; line-height: 1; padding: 0; }
+  .vg-audio:hover { color: var(--accent); border-color: var(--accent); }
+  .vg-audio.playing { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .vg-solid:hover { color: var(--accent); border-color: var(--accent); }
+  .vg-row.solid .vg-solid { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .vb { font-weight: 700; color: var(--accent); }
+  #ving.quiz .vb { background: var(--idle); color: transparent; border-radius: 3px;
+    cursor: pointer; user-select: none; }
+  #ving.quiz .vb.shown { background: transparent; color: var(--accent); }
+
+  .vg-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+  .vg-gset { background: #fbfaf7; border: 1px solid var(--border); border-radius: 10px; padding: 11px 13px; }
+  .vg-gset h4 { margin: 0 0 4px; font-family: var(--mono); font-size: 12px; color: var(--accent); }
+  .vg-rule { background: #fbfaf7; border: 1px solid var(--border); border-radius: 10px;
+    padding: 13px 15px; margin-bottom: 9px; }
+  .vg-rule h4 { margin: 0 0 5px; font-size: 12.5px; }
+  .vg-rule .r-lead { font-size: 12.5px; color: var(--ink-soft); margin-bottom: 8px; }
+  .vg-rule pre { font-family: var(--mono); font-size: 11px; line-height: 1.45; margin: 0;
+    white-space: pre-wrap; color: var(--ink-soft); }
+  .vg-trap { font-size: 12.5px; padding: 8px 0; border-bottom: 1px solid #f0eee9; }
+  .vg-trap b { color: var(--flame); }
+
+  /* ── Word Vault doorway (the vault itself is vault.html) ── */
+  .vl-bar { display:flex; height:30px; border-radius:8px; overflow:hidden; margin-bottom:14px;
+    border:1px solid var(--border); background:var(--idle); }
+  .vl-seg { display:flex; align-items:center; justify-content:center; gap:5px; min-width:0;
+    font-family:var(--mono); font-size:11px; font-weight:700; color:#fff; }
+  .vl-seg span { opacity:.85; font-weight:400; }
+  .vl-seg.lv0 { background:#b9b5ab; } .vl-seg.lv1 { background:var(--wrong); }
+  .vl-seg.lv2 { background:var(--flame); } .vl-seg.lv3 { background:#4a6fa5; }
+  .vl-seg.lv4 { background:var(--accent); }
+  .vault-door-row { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .vd-n { font-size:13px; color:var(--ink-soft); }
+  .vd-n b { font-family:var(--mono); color:var(--ink); font-size:15px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="topbar">
+  <h1>TOEIC 900</h1>
+  <span class="sub">{{ days_built }}/{{ days_total }} days built · {{ built_chunks }} chunks</span>
+</div>
+
+<!-- ══ TIER 0 — TODAY ═══════════════════════════════════════════════
+     The only question this screen answers is "how far did I get today".
+     Everything historical is in the collapsed block at the bottom. -->
+<section class="today">
+  <div class="today-grid">
+    <div class="ring-wrap">
+      <svg class="ring" viewBox="0 0 168 168">
+        <circle class="ring-track" cx="84" cy="84" r="70"></circle>
+        <circle class="ring-fill" id="ring" cx="84" cy="84" r="70"
+                transform="rotate(-90 84 84)" stroke-dasharray="439.8" stroke-dashoffset="439.8"></circle>
+      </svg>
+      <div class="ring-center" id="ring-center"></div>
+    </div>
+    <div class="today-body">
+      <div class="t-head" id="t-head">Loading…</div>
+      <div class="t-nudge" id="t-nudge"></div>
+      <div class="split-bars" id="t-bars"></div>
+      <div id="t-cta"></div>
+    </div>
+  </div>
+  <div class="streak-strip" id="streak"></div>
+</section>
+
+<!-- ══ PACE + THE MAP ═══════════════════════════════════════════════
+     The projected number is one line, not a chart: plotting a single value
+     would be a one-bar bar chart. It sits above the map because "will I get
+     there" is the question the map itself cannot answer. -->
+<section>
+  <h2>The 30-day map</h2>
+  <div class="h2-sub">Colour is how much of that day you have answered — {{ days_built }} built ·
+    {{ built_chunks }} chunks · projected {{ projected_30d }} across 30 days</div>
+  <div class="pace" id="pace"></div>
+  <div class="heatmap" id="heatmap"></div>
+  <div class="hm-legend">
+    <span class="swatch" style="background:var(--idle)"></span>not started
+    <span class="swatch" style="background:var(--accent-light)"></span>part way
+    <span class="swatch" style="background:var(--accent)"></span>most of it
+    <span class="sep">·</span>
+    <span>orange ring = the day to pick up next</span>
+  </div>
+</section>
+
+<!-- ══ TODAY'S WINS ═════════════════════════════════════════════════ -->
+<section id="wins-section">
+  <h2>Today's wins</h2>
+  <div class="h2-sub">What you can do now that you could not this morning</div>
+  <div id="wins-slot"></div>
+</section>
+
+<!-- ══ MEMORY BANK ══════════════════════════════════════════════════ -->
+<section>
+  <h2>Memory bank</h2>
+  <div class="h2-sub">Every main chunk in the course, by how well it is holding. Fading is the
+    number that matters — those are words you have met and are losing.</div>
+  <div class="bank-bar" id="bank-bar"></div>
+  <div class="bank-legend" id="bank-legend"></div>
+  <div class="bank-foot" id="bank-foot"></div>
+</section>
+
+<!-- ══ SPEED × ACCURACY ═════════════════════════════════════════════ -->
+<section id="dv-section" style="display:none">
+  <h2>⏱️ How you answer</h2>
+  <div class="h2-sub">Wrong left, right right. The goal is weight moving up and to the right — knowing it is
+    not the same as knowing it fast enough.</div>
+  <div class="dv-legend">
+    <span class="dv-key"><i style="background:var(--dv-wrong)"></i>Wrong</span>
+    <span class="dv-key"><i style="background:var(--dv-right)"></i>Right</span>
+    <span class="dv-key" style="margin-left:4px;color:var(--ink-faint)">→ accuracy</span>
+    <span class="dv-period" id="dv-period"></span>
+  </div>
+  <div id="dv-rows"></div>
+  <div class="dv-note" id="dv-note"></div>
+</section>
+
+<!-- ══ NEXT ACTIONS ════════════════════════════════════════════════ -->
+<section>
+  <h2>What to do next</h2>
+  <div class="h2-sub">Sorted by what is closest to being forgotten — rescuing an old chunk beats learning a new one</div>
+  <div id="actions-slot"></div>
+  <div id="weak-slot"></div>
+</section>
+
+<!-- ══ WORD VAULT ══════════════════════════════════════════════════
+     The vault has its own page; this is only the doorway, with the counts the
+     hub is responsible for showing. -->
+<section id="vault-door" style="display:none">
+  <h2>📌 Word Vault</h2>
+  <div class="h2-sub">Words you tapped while reading, across every day</div>
+  <div class="vl-bar" id="vl-bar"></div>
+  <div class="vault-door-row">
+    <span class="vd-n" id="vd-n"></span>
+    <a class="cta" href="vault.html">Open the vault</a>
+  </div>
+</section>
+
+{% if ving %}
+<!-- ══ V-ING CORE ══════════════════════════════════════════════════
+     Cross-day rote reference. Deliberately NOT in the collapsed stats block:
+     it is study material, not a metric. -->
+<section id="ving">
+  <h2>🔁 {{ ving.title }}</h2>
+  <div class="h2-sub">{{ ving.subtitle }}</div>
+
+  <div class="vg-head">
+    <span class="vg-count"><b id="vg-n">0</b> / {{ ving_count }} marked solid</span>
+    <label class="vg-quiz"><input type="checkbox" id="vg-quiz"> Quiz mode — hide the form until tapped</label>
+    <button class="vg-reset" id="vg-reset">Reset</button>
+  </div>
+  <div class="vg-track"><span class="vg-fill" id="vg-bar"></span></div>
+
+  <div class="vg-tabs" id="vg-tabs">
+    {% for g in ving.groups %}
+    <button class="vg-tab{% if loop.first %} on{% endif %}" data-pane="{{ g.id }}">{{ g.tab }}</button>
+    {% endfor %}
+    <button class="vg-tab" data-pane="rules">Rules</button>
+    <button class="vg-tab" data-pane="traps">Traps</button>
+  </div>
+
+  {% for g in ving.groups %}
+  <div class="vg-pane{% if loop.first %} on{% endif %}" id="pane-{{ g.id }}">
+    {% if g.label %}<div class="vg-sub"><b>{{ g.label }}</b>{% if g.sub %} — {{ g.sub }}{% endif %}</div>{% endif %}
+
+    {% if g.kind == 'grid' %}
+      <div class="vg-grid">
+      {% for s in g.sets %}
+        <div class="vg-gset">
+          <h4>{{ s.prep }}</h4>
+          {% for it in s['items'] %}
+          <div class="vg-row" data-id="{{ it.aid }}">
+            <button class="vg-audio" data-src="grammar/audio/{{ it.aid }}.mp3" title="Play">▸</button>
+            <span class="vg-txt">{{ it.chunk|replace('[[','<span class="vb">')|replace(']]','</span>')|safe }}
+              <span class="vg-zh">{{ it.zh }}</span></span>
+            <button class="vg-solid" data-id="{{ it.aid }}" title="I know this one">✓</button>
+          </div>
+          {% endfor %}
+        </div>
+      {% endfor %}
+      </div>
+
+    {% elif g.kind == 'contrast' %}
+      {% for it in g['items'] %}
+      <div class="vg-row" data-id="{{ it.aid }}">
+        <button class="vg-audio" data-src="grammar/audio/{{ it.aid }}a.mp3" title="Play">▸</button>
+        <span class="vg-txt">
+          <span>{{ it.a_sentence|replace('[[','<span class="vb">')|replace(']]','</span>')|safe }}
+            <span class="vg-zh">{{ it.a_zh }}</span></span>
+          <span class="vg-b">{{ it.b_sentence|replace('[[','<span class="vb">')|replace(']]','</span>')|safe }}
+            <span class="vg-zh">{{ it.b_zh }}</span></span>
+        </span>
+        <button class="vg-solid" data-id="{{ it.aid }}" title="I know this one">✓</button>
+      </div>
+      {% endfor %}
+
+    {% else %}
+      {% for it in g['items'] %}
+      <div class="vg-row" data-id="{{ it.aid }}">
+        <button class="vg-audio" data-src="grammar/audio/{{ it.aid }}.mp3" title="Play">▸</button>
+        <span class="vg-txt">{{ it.sentence|replace('[[','<span class="vb">')|replace(']]','</span>')|safe }}
+          {% if it.flag %}<span class="vg-flag">{{ it.flag }}</span>{% endif %}
+          <span class="vg-zh">{{ it.zh }}</span></span>
+        <button class="vg-solid" data-id="{{ it.aid }}" title="I know this one">✓</button>
+      </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <div class="vg-pane" id="pane-rules">
+    {% for r in ving.rules %}
+    <div class="vg-rule">
+      <h4>{{ r.title }}</h4>
+      {% if r.lead %}<div class="r-lead">{{ r.lead }}</div>{% endif %}
+      {% if r.body %}<pre>{{ r.body }}</pre>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  <div class="vg-pane" id="pane-traps">
+    {% for t in ving.traps %}
+    <div class="vg-trap"><b>{{ t.title }}</b> — {{ t.body|md|safe }}</div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- ══ COLLAPSED STATS ══════════════════════════════════════════════
+     Long-run numbers live behind a disclosure: they flatten out, and a flat
+     line read daily is discouraging even when the work is going well. -->
+<details class="stats">
+  <summary>Long-run numbers <span class="s-hint">accuracy, trend, projection</span></summary>
+  <div class="s-body">
+    <div class="s-block">
+      <h3>Where you stand</h3>
+      <div class="h3-sub">Across every answer logged, all days</div>
+      <div class="kv" id="kv-slot"></div>
+    </div>
+    <div class="s-block">
+      <h3>Consolidated chunks, last 14 days</h3>
+      <div class="h3-sub">Monotonic apart from real regressions — it reads as getting stronger rather
+        than as getting worse at harder material</div>
+      <div id="trend-slot"></div>
+    </div>
+  </div>
+</details>
+
+</div>
+
+<script src="bank.js"></script>
+<script src="srs.js"></script>
+<script src="stats.js"></script>
+<script>
+/* ── Dashboard ───────────────────────────────────────────────────────
+   Every number here comes from window.ToeicStats (answers) or window.SRS
+   (schedule). Nothing is recomputed locally, so the hub and the day pages
+   can never disagree about what is due.                                  */
+const DAYS = {{ days_list|tojson }};
+const BUILT_CHUNKS = {{ built_chunks }};
+const DAYS_BUILT = {{ days_built }};
+const S = window.ToeicStats;
+
+const el = id => document.getElementById(id);
+const esc = t => String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pad = n => String(n).padStart(2, "0");
+
+/* ── Tier 0: today ── */
+function drawToday() {
+  const g = S.getDailyGoal({ builtChunks: BUILT_CHUNKS });
+  const C = 2 * Math.PI * 70;
+  const ring = el("ring");
+  ring.style.strokeDasharray = C;
+  requestAnimationFrame(() => { ring.style.strokeDashoffset = C * (1 - g.pct); });
+  if (g.pct >= 0.75 && !g.met) ring.classList.add("close");
+
+  el("ring-center").innerHTML = g.met
+    ? `<div class="rc-num rc-big">✓</div><div class="rc-cap">done</div>`
+    : `<div class="rc-num">${g.done}</div><div class="rc-den">/ ${g.total}</div>
+       <div class="rc-cap">today</div>`;
+
+  const wins = S.getTodayWins();
+  el("t-head").textContent = g.met ? "Today is done."
+    : g.done === 0 ? "Nothing yet today."
+    : `${g.remaining} to go.`;
+  el("t-nudge").innerHTML = g.met
+    ? `${wins.learned} new · ${wins.reviewed} reviewed · ${wins.minutes} min. Anything past this is a bonus.`
+    : g.done === 0 ? `A first pass at one day's chunks is <b>about 15 minutes</b>. Start anywhere.`
+    : `You are <b>${Math.round(g.pct * 100)}%</b> of the way there.`;
+
+  el("t-bars").innerHTML = [
+    ["new", "New", g.new_done, g.new_goal],
+    ["rev", "Review", g.review_done, g.review_goal],
+  ].filter(r => r[3] > 0).map(([cls, label, done, goal]) => {
+    const pct = goal ? Math.min(100, done / goal * 100) : 0;
+    return `<div class="sb ${cls}${done >= goal ? " done" : ""}">
+      <span class="sb-l">${label}</span>
+      <span class="sb-track"><span class="sb-fill" style="width:${pct}%"></span></span>
+      <span class="sb-n">${done} / ${goal}</span></div>`;
+  }).join("");
+
+  /* The call to action points at the work, not at a menu: the next day with
+     unanswered chunks, or the review queue when something is fading. */
+  const bank = S.getMemoryBank(BUILT_CHUNKS);
+  const nextDay = firstUnfinishedDay();
+  el("t-cta").innerHTML = bank.fading > 0
+    ? `<a class="cta" href="day${pad(nextDay)}/practice.html">Rescue ${bank.fading} fading
+         <span class="cta-sub">before anything new</span></a>`
+    : `<a class="cta" href="day${pad(nextDay)}/index.html">Open Day ${pad(nextDay)}
+         <span class="cta-sub">${dayTheme(nextDay)}</span></a>`;
+
+  drawStreak();
+}
+
+function dayTheme(n) { const d = DAYS.find(x => x.day === n); return d ? d.theme_en : ""; }
+
+function firstUnfinishedDay() {
+  const per = perDayAnswered();
+  for (const d of DAYS) if ((per[d.day] || 0) < d.chunks) return d.day;
+  return DAYS.length ? DAYS[DAYS.length - 1].day : 1;
+}
+
+/* how many distinct main chunks of each day have been answered at all */
+function perDayAnswered() {
+  const data = S._load();
+  const out = {};
+  const seen = new Set();
+  for (const a of data.answers || []) {
+    const key = `day${pad(a.day)}_${a.chunkId}`;
+    if (!S._isMainChunkKey(key) || seen.has(key)) continue;
+    seen.add(key);
+    out[a.day] = (out[a.day] || 0) + 1;
+  }
+  return out;
+}
+
+function drawStreak() {
+  const st = S.getStreak();
+  const dots = st.week.map(d =>
+    `<span class="wd${d.active ? " on" : d.frozen ? " frozen" : ""}${d.is_today ? " today" : ""}"
+      title="${d.date}"></span>`).join("");
+  el("streak").innerHTML =
+    `<span class="flame${st.current ? "" : " cold"}">
+       <span class="fi">🔥</span><span class="fn">${st.current}</span>
+       <span class="fl">day${st.current === 1 ? "" : "s"}</span></span>
+     <span class="week-dots">${dots}</span>
+     ${st.freezes ? `<span class="freeze-chip">${st.freezes} freeze${st.freezes === 1 ? "" : "s"}</span>` : ""}
+     <span class="streak-note">${st.current >= st.longest && st.current > 1
+        ? "Your longest run so far." : `Longest ${st.longest}`}</span>`;
+}
+
+/* ── Wins ── */
+function drawWins() {
+  const w = S.getTodayWins();
+  if (!w.any) {
+    el("wins-slot").innerHTML =
+      `<div class="cold-start"><span class="cs-emoji">🌱</span>
+        <span><span class="cs-t">Nothing logged today yet.</span>
+        <span class="cs-s">Wins appear here as soon as you answer anything.</span></span></div>`;
+    return;
+  }
+  const tiles = [
+    ["🌱", w.learned, "met for the first time", ""],
+    ["🛟", w.rescued, "pulled back from fading", "gold"],
+    ["🏆", w.promoted, "now holding on their own", "gold"],
+    ["🔁", w.reviewed, "seen again", ""],
+  ].filter(t => t[1] > 0);
+  if (w.best_run >= 3) tiles.push(["⚡", w.best_run, "correct in a row", ""]);
+  el("wins-slot").innerHTML = tiles.length
+    ? `<div class="wins">${tiles.map(([i, n, l, cls]) =>
+        `<div class="win ${cls}"><span class="wi">${i}</span>
+          <span><span class="wn">${n}</span><br><span class="wl">${l}</span></span></div>`).join("")}</div>`
+    : `<div class="wins"><div class="win flat"><span class="wi">📝</span>
+        <span><span class="wn">${w.answers}</span><br><span class="wl">answers, nothing promoted yet</span></span></div></div>`;
+}
+
+/* ── Memory bank ── */
+function drawBank() {
+  const b = S.getMemoryBank(BUILT_CHUNKS);
+  const total = b.total || 1;
+  el("bank-bar").innerHTML = [
+    ["solid", b.consolidated], ["learning", b.learning], ["fading", b.fading],
+  ].map(([cls, n]) => `<span class="bank-seg ${cls}" data-w="${n / total * 100}"></span>`).join("");
+  requestAnimationFrame(() => document.querySelectorAll(".bank-seg")
+    .forEach(s => { s.style.width = s.dataset.w + "%"; }));
+
+  const d = b.delta || {};
+  const row = (sw, label, n, delta) =>
+    `<div class="bl"><span class="sw" style="background:${sw}"></span>
+      <span class="bl-l">${label}</span><span class="bl-n">${n}</span>
+      ${delta ? `<span class="bl-d${delta < 0 ? " down" : ""}">${delta > 0 ? "+" : ""}${delta}</span>` : ""}</div>`;
+  el("bank-legend").innerHTML =
+    row("var(--accent)", "Holding", b.consolidated, d.consolidated) +
+    row("var(--accent-light)", "Learning", b.learning, d.learning) +
+    row("var(--gold)", "Fading", b.fading, d.fading) +
+    row("var(--idle)", "Not met yet", b.untouched, 0);
+
+  const trend = S.getConsolidatedTrend(14);
+  el("bank-foot").innerHTML =
+    `<span class="spark-label"><b>${b.consolidated}</b> of ${b.total} holding
+      ${d.touched ? ` · ${d.touched > 0 ? "+" : ""}${d.touched} met today` : ""}</span>
+     ${spark(trend.map(t => t.count))}`;
+}
+
+/* 14-point sparkline; flat is a legitimate shape and must not be hidden */
+function spark(vals) {
+  if (!vals.length) return "";
+  const w = 190, h = 40, max = Math.max(...vals, 1), min = 0;
+  const x = i => i / (vals.length - 1 || 1) * (w - 4) + 2;
+  const y = v => h - 4 - (v - min) / (max - min || 1) * (h - 10);
+  const line = vals.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}">
+    <path class="a" d="${line} L${x(vals.length - 1).toFixed(1)},${h} L${x(0).toFixed(1)},${h} Z"></path>
+    <path class="l" d="${line}"></path>
+    <circle cx="${x(vals.length - 1).toFixed(1)}" cy="${y(vals[vals.length - 1]).toFixed(1)}" r="3"></circle>
+  </svg>`;
+}
+
+/* ── Speed × accuracy ── */
+function drawSpeed() {
+  const data = S._load();
+  const answers = (data.answers || []).filter(a => a.rt > 0);
+  if (answers.length < 12) return;
+  el("dv-section").style.display = "";
+  const bands = [
+    ["Under 5s", "instant", a => a.rt < 5000],
+    ["5–10s", "retrieved", a => a.rt >= 5000 && a.rt < 10000],
+    ["10–20s", "worked out", a => a.rt >= 10000 && a.rt < 20000],
+    ["Over 20s", "reconstructed", a => a.rt >= 20000],
+  ];
+  const rows = bands.map(([lab, sub, f]) => {
+    const g = answers.filter(f);
+    return { lab, sub, n: g.length, ok: g.filter(a => a.correct).length };
+  });
+  const max = Math.max(...rows.map(r => r.n), 1);
+  el("dv-rows").innerHTML = rows.map(r => {
+    const wrong = r.n - r.ok;
+    return `<div class="dv-row">
+      <span class="dv-lab">${r.lab}<small>${r.sub}</small></span>
+      <span class="dv-track">
+        <span class="dv-half l"><i style="width:${wrong / max * 100}%"></i></span>
+        <span class="dv-half r"><i style="width:${r.ok / max * 100}%"></i></span>
+      </span>
+      <span class="dv-share">${r.n ? Math.round(r.ok / r.n * 100) + "%" : "—"}</span></div>`;
+  }).join("");
+  el("dv-period").textContent = answers.length + " answers";
+  const slowOk = rows[3].ok, fastOk = rows[0].ok + rows[1].ok;
+  el("dv-note").innerHTML = slowOk > fastOk
+    ? `More of your correct answers take <b>over 20 seconds</b> than under ten. On the paper that is
+       the difference between finishing and not — those chunks need speed, not more accuracy.`
+    : `Most of what you get right, you get right <b>quickly</b>. That is the shape to keep.`;
+}
+
+/* ── Next actions ── */
+function drawActions() {
+  const bank = S.getMemoryBank(BUILT_CHUNKS);
+  const fading = (bank.fading_list || []).slice(0, 6);
+  const byDay = {};
+  fading.forEach(f => { (byDay[f.day] = byDay[f.day] || []).push(f); });
+  const acts = Object.entries(byDay).map(([day, list]) =>
+    `<a class="act urgent" href="day${pad(day)}/practice.html">
+      <span class="ac-i">🛟</span>
+      <span><span class="ac-t">Day ${pad(day)} — ${esc(dayTheme(+day))}</span>
+        <span class="ac-s">${list.length} chunk${list.length === 1 ? "" : "s"} fading</span></span>
+      <span class="ac-go">Rescue →</span></a>`);
+
+  const next = firstUnfinishedDay();
+  acts.push(`<a class="act" href="day${pad(next)}/index.html">
+      <span class="ac-i">📘</span>
+      <span><span class="ac-t">Day ${pad(next)} — ${esc(dayTheme(next))}</span>
+        <span class="ac-s">the next day with chunks you have not met</span></span>
+      <span class="ac-go">Open →</span></a>`);
+  acts.push(`<a class="act" href="day${pad(next)}/reading.html">
+      <span class="ac-i">📄</span>
+      <span><span class="ac-t">Reading test — Day ${pad(next)}</span>
+        <span class="ac-s">36 items across four passage sets, about 26 minutes</span></span>
+      <span class="ac-go">Start →</span></a>`);
+  el("actions-slot").innerHTML = acts.join("");
+
+  const weak = (bank.fading_list || []).filter(f => f.accuracy < 0.6).slice(0, 24);
+  el("weak-slot").innerHTML = weak.length
+    ? `<div class="h2-sub" style="margin:14px 0 4px">Missed more often than not</div>
+       <div class="weak-chips">${weak.map(f =>
+         `<a class="weak-chip" href="day${pad(f.day)}/chunks.html#c${f.chunkId}">Day ${pad(f.day)}·${f.chunkId}
+           <span class="wc-n">${Math.round(f.accuracy * 100)}%</span></a>`).join("")}</div>`
+    : "";
+}
+
+/* ── Pace: one line above the map ── */
+function drawPace() {
+  const g = S.getGlobalStats();
+  const proj = S.projectScore(g.accuracy, g.chunks_touched, {{ projected_30d }});
+  const bank = S.getMemoryBank(BUILT_CHUNKS);
+  const pct = BUILT_CHUNKS ? Math.round(bank.touched / BUILT_CHUNKS * 100) : 0;
+  el("pace").innerHTML = g.total_answers
+    ? `<span><b>${bank.touched}</b> of ${BUILT_CHUNKS} chunks met <b>${pct}%</b></span>
+       <span><b>${Math.round(g.accuracy * 100)}%</b> accurate over ${g.total_answers} answers</span>
+       <span>projected reading <b>${proj.projected}</b>
+         ${proj.coverage < 0.3 ? '<span class="warn">— too little data to trust yet</span>' : ""}</span>`
+    : `<span>Nothing answered yet — the map fills in as you work through the days.</span>`;
+}
+
+/* ── Collapsed stats ── */
+function drawStats() {
+  const g = S.getGlobalStats();
+  const proj = S.projectScore(g.accuracy, g.chunks_touched, BUILT_CHUNKS);
+  el("kv-slot").innerHTML = [
+    ["Answers", g.total_answers],
+    ["Accuracy", g.total_answers ? Math.round(g.accuracy * 100) + "%" : "—"],
+    ["Chunks met", g.chunks_touched],
+    ["Chunks mastered", g.chunks_mastered],
+    ["Projected reading", proj.projected || "—"],
+  ].map(([k, v]) => `<div class="kvi"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+
+  const trend = S.getConsolidatedTrend(14);
+  const flat = trend.every(t => t.count === trend[0].count);
+  el("trend-slot").innerHTML = trend.some(t => t.count)
+    ? spark(trend.map(t => t.count)) +
+      `<div class="dv-note">${flat ? "Flat for two weeks — nothing new has consolidated."
+        : `From ${trend[0].count} to ${trend[trend.length - 1].count} in 14 days.`}</div>`
+    : `<div class="empty">Nothing consolidated yet — this fills in once chunks start holding.</div>`;
+
+  const per = perDayAnswered();
+  const cells = [];
+  for (let n = 1; n <= 30; n++) {
+    const d = DAYS.find(x => x.day === n);
+    if (!d) { cells.push(`<span class="hm-cell locked"><span class="day-n">${pad(n)}</span></span>`); continue; }
+    const pct = d.chunks ? Math.min(1, (per[n] || 0) / d.chunks) : 0;
+    const cls = pct >= 0.8 ? "done" : "";
+    const bg = pct === 0 ? "var(--idle)" : pct >= 0.8 ? "var(--accent)" : "var(--accent-light)";
+    cells.push(`<a class="hm-cell ${cls}" href="day${pad(n)}/index.html" style="background:${bg}"
+      title="${esc(d.theme_en)}"><span class="hm-emoji">${d.icon}</span>
+      <span class="day-n">${pad(n)}</span>
+      ${pct ? `<span class="hm-pct">${Math.round(pct * 100)}%</span>` : ""}</a>`);
+  }
+  el("heatmap").innerHTML = cells.join("");
+}
+
+/* ── V-ing tabs ── */
+(function () {
+  const tabs = el("vg-tabs"); if (!tabs) return;
+  tabs.addEventListener("click", e => {
+    const t = e.target.closest(".vg-tab"); if (!t) return;
+    tabs.querySelectorAll(".vg-tab").forEach(x => x.classList.toggle("on", x === t));
+    document.querySelectorAll("#ving .vg-panel").forEach(p =>
+      p.classList.toggle("on", p.id === t.dataset.p));
+  });
+})();
+
+/* SRS boot adopts a fuller history from the server when there is one, then
+   backfills the pre-SRS per-day records; both can change every number above,
+   so nothing is drawn until it settles. */
+(window.SRS && window.SRS.boot ? window.SRS.boot() : Promise.resolve())
+  .catch(() => {})
+  .then(() => {
+    try { drawToday(); } catch (e) { console.error("today", e); }
+    try { drawWins(); } catch (e) { console.error("wins", e); }
+    try { drawBank(); } catch (e) { console.error("bank", e); }
+    try { drawSpeed(); } catch (e) { console.error("speed", e); }
+    try { drawActions(); } catch (e) { console.error("actions", e); }
+    try { drawStats(); } catch (e) { console.error("stats", e); }
+    try { drawPace(); } catch (e) { console.error("pace", e); }
+  });
+
+  /* ── Word Vault doorway ──────────────────────────────────────────────
+   The vault itself is vault.html. Here we only show the level spread and the
+   counts, reading the same store and the same SRS schedule. */
+(function(){
+  const KEY="toeic.vocabVault.v1";
+  const sec=document.getElementById("vault-door"); if(!sec) return;
+  let v={}; try{ v=JSON.parse(localStorage.getItem(KEY)||"{}"); }catch(e){}
+  const words=Object.keys(v);
+  if(!words.length) return;
+  sec.style.display="";
+
+  const raw=window.SRS && window.SRS.raw();
+  const card=w=>(raw && raw.cards["vault:"+w])||null;
+  /* mirrors vault.html — five levels, a miss has its own */
+  const level=w=>{ const c=card(w);
+    if(!c||!c.n) return 0;
+    if(c.s<=0.5) return 1;
+    if(c.ok/c.n<0.7 || c.slow/c.n>=0.5) return 2;
+    return c.s>=8?4:c.s>=2?3:2; };
+  const due=w=>{ const c=card(w); return !!c && c.n>0 && c.due<=Date.now(); };
+
+  const NAMES=["New","Forgotten","Learning","Familiar","Known"];
+  const counts=[0,0,0,0,0]; words.forEach(w=>counts[level(w)]++);
+  document.getElementById("vl-bar").innerHTML=counts.map((n,k)=>n
+    ? `<div class="vl-seg lv${k}" style="flex:${n} 1 0" title="${NAMES[k]}">${n}<span>${NAMES[k]}</span></div>` : "").join("");
+
+  const dueN=words.filter(due).length;
+  document.getElementById("vd-n").innerHTML=
+    `<b>${words.length}</b> word${words.length===1?"":"s"} filed` +
+    (dueN?` · <b>${dueN}</b> ready to review` : " · none due yet");
+})();
+</script>
+</body>
+</html>

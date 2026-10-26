@@ -1,0 +1,115 @@
+{
+  "day": "Day 01",
+  "words": [
+    {
+      "index": 1,
+      "word": "schedule",
+      "pos": "n./v.",
+      "zh": "行程表，時間表；（v.）安排",
+      "example": {
+        "en": "Let's schedule the team meeting for Tuesday morning.",
+        "zh": "我們把團隊會議安排在星期二早上吧。"
+      },
+      "extraExamples": [],
+      "related": [
+        {
+          "word": "reschedule",
+          "pos": "v.",
+          "zh": "重新安排"
+        }
+      ],
+      "star": 3
+    },
+    {
+      "index": 2,
+      "word": "deadline",
+      "pos": "n.",
+      "zh": "截止期限",
+      "example": {
+        "en": "The deadline for the sales report is Friday at noon.",
+        "zh": "銷售報告的截止期限是星期五中午。"
+      },
+      "extraExamples": [],
+      "related": [
+        {
+          "word": "due date",
+          "pos": "n.",
+          "zh": "到期日"
+        }
+      ],
+      "star": 2
+    },
+    {
+      "index": 3,
+      "word": "colleague",
+      "pos": "n.",
+      "zh": "（工作上的）同事",
+      "example": {
+        "en": "My colleague helped me finish the slides last night.",
+        "zh": "我的同事昨晚幫我完成了投影片。"
+      },
+      "extraExamples": [],
+      "related": [
+        {
+          "word": "coworker",
+          "pos": "n.",
+          "zh": "同事"
+        }
+      ],
+      "star": 2
+    },
+    {
+      "index": 4,
+      "word": "submit",
+      "pos": "v.",
+      "zh": "提交，呈遞",
+      "example": {
+        "en": "Please submit your expense report by the end of the month.",
+        "zh": "請在月底前提交你的費用報告。"
+      },
+      "extraExamples": [],
+      "related": [
+        {
+          "word": "submission",
+          "pos": "n.",
+          "zh": "提交；提交的文件"
+        }
+      ],
+      "star": 3
+    },
+    {
+      "index": 5,
+      "word": "approve",
+      "pos": "v.",
+      "zh": "批准，同意",
+      "example": {
+        "en": "The manager approved the new budget yesterday.",
+        "zh": "經理昨天批准了新的預算。"
+      },
+      "extraExamples": [],
+      "related": [
+        {
+          "word": "approval",
+          "pos": "n.",
+          "zh": "批准"
+        },
+        {
+          "word": "reject",
+          "pos": "v.",
+          "zh": "拒絕（反義）"
+        }
+      ],
+      "star": 3
+    }
+  ],
+  "notes": [
+    {
+      "word": "submit",
+      "kind": "常考語句",
+      "heading": "submit A to B 把 A 交給 B",
+      "body": "submit 後面接要交的東西，交給誰用 to。也常見被動 be submitted to。"
+    }
+  ],
+  "lists": [],
+  "continued": false
+}

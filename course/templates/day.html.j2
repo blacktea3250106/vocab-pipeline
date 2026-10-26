@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Day {{ '%02d' % day }} · {{ theme_en }}</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --card: #fff; --ink: #1a1a1a; --ink-soft: #6b6b6b;
+    --accent: #2a7a4f; --accent-soft: #e5f0ea;
+    --dict: #1f6f78; --read: #4a6fa5; --ref: #7a5aa3; --pat: #8a6a2f;
+    --flow: #a35a5a;
+    --border: #e4e0d8; --shadow: 0 1px 2px rgba(0,0,0,.03), 0 6px 18px rgba(0,0,0,.05);
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.5; margin: 0;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 0 18px 60px; }
+  .top { background: #fff; border-bottom: 1px solid var(--border); }
+  .top .inner { max-width: 820px; margin: 0 auto; padding: 11px 18px; display: flex; align-items: center; gap: 12px; }
+  .top .brand { font-weight: 700; font-size: 14px; }
+  .top .brand small { color: var(--ink-soft); font-weight: 400; margin-left: 6px; }
+  .top .up { margin-left: auto; font-size: 12px; color: var(--ink-soft); text-decoration: none; }
+
+  .hero { padding: 30px 0 6px; }
+  .hero h1 { font-size: 27px; margin: 0 0 4px; }
+  .hero p { color: var(--ink-soft); margin: 0; font-size: 14px; }
+  .today { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 18px; }
+  .today .m { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 13px; text-align: center; }
+  .today .m b { display: block; font-size: 24px; font-family: var(--mono); }
+  .today .m span { font-size: 10.5px; color: var(--ink-soft); letter-spacing: .5px; text-transform: uppercase; }
+
+  h2.sec { font-size: 12px; letter-spacing: 1.4px; color: var(--ink-soft); text-transform: uppercase;
+           margin: 30px 0 12px; display: flex; align-items: center; gap: 10px; }
+  h2.sec::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+  /* Numbered rows, not competing cards — the three pages are a sequence, and
+     side-by-side cards of equal weight cannot say that. */
+  .cards { display: flex; flex-direction: column; gap: 10px; }
+  .c { text-decoration: none; color: var(--ink); background: #fff;
+       border: 1px solid var(--border); border-left: 5px solid var(--tc); border-radius: 13px;
+       box-shadow: var(--shadow); padding: 15px 16px;
+       display: grid; grid-template-columns: 30px 1fr auto; gap: 4px 13px; align-items: center; }
+  .c[aria-disabled] { opacity: .45; pointer-events: none; }
+  .c .n { grid-area: 1 / 1 / 3 / 2; align-self: start; margin-top: 2px;
+          width: 30px; height: 30px; border-radius: 50%; background: #f2f0ec; color: var(--ink-soft);
+          font-family: var(--mono); font-size: 13px; font-weight: 700;
+          display: flex; align-items: center; justify-content: center; }
+  .c .nm { grid-area: 1 / 2 / 2 / 3; font-size: 17px; font-weight: 700; }
+  .c .nm .ic { margin-right: 7px; }
+  .c .cnt { grid-area: 1 / 3 / 3 / 4; font-family: var(--mono); font-size: 12.5px; font-weight: 700;
+            color: var(--tc); white-space: nowrap; align-self: center; }
+  .c .sub { grid-area: 2 / 2 / 3 / 3; font-size: 12.5px; color: var(--ink-soft); line-height: 1.5; }
+  .note { font-size: 12px; color: var(--ink-soft); line-height: 1.75; margin-top: 22px; }
+  /* Time budget — the four steps do not fit an evening by accident, so the page
+     says what each one costs instead of leaving it to be discovered. */
+  .budget { margin-top: 26px; border: 1px solid var(--border); background: #fff;
+            border-radius: 12px; padding: 14px 16px; }
+  .budget h3 { font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase;
+               color: var(--ink-soft); margin: 0 0 10px; font-weight: 600; }
+  .budget table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .budget td { padding: 4px 0; color: var(--ink-soft); }
+  .budget td.t { font-family: var(--mono); text-align: right; color: var(--ink); white-space: nowrap; }
+  .budget tr.sum td { border-top: 1px solid var(--border); padding-top: 8px; font-weight: 700; color: var(--ink); }
+  @media (max-width: 560px) { .today { grid-template-columns: 1fr 1fr 1fr; } }
+</style>
+</head>
+<body>
+
+<div class="top"><div class="inner">
+  <div class="brand">{{ day_icon|default('📘') }} Day {{ '%02d' % day }} <small>{{ theme_en }}</small></div>
+  <a class="up" href="../index.html">← All days</a>
+</div></div>
+
+<div class="wrap">
+  <div class="hero">
+    <h1>{{ theme_en }}</h1>
+    <p>Skim the words, hear them, learn the patterns, then drill. About two hours end to end.</p>
+    <div class="today">
+      <div class="m"><b>{{ chunks|length }}</b><span>Chunks</span></div>
+      <div class="m"><b>{{ n_supp }}</b><span>Extra words</span></div>
+      <div class="m"><b>{{ stories|default([])|length }}</b><span>Stories</span></div>
+    </div>
+  </div>
+
+  <h2 class="sec">Today, in order</h2>
+  <div class="cards">
+    <a class="c" style="--tc:var(--ref)" href="reference.html"{% if not has_supp %} aria-disabled="true"{% endif %}>
+      <span class="n">1</span>
+      <span class="nm"><span class="ic">📚</span>Word List</span>
+      <span class="cnt">{% if has_supp %}{{ n_supp }} words →{% else %}not built{% endif %}</span>
+      <span class="sub">Skim, do not memorize. One pass to see what today is made of, so the drills
+      later land on something you have already met. Concept diagrams are worth stopping on; the bare
+      English&nbsp;→&nbsp;Chinese pairs are not.</span>
+    </a>
+    <a class="c" style="--tc:var(--flow)" href="player.html"{% if not has_player %} aria-disabled="true"{% endif %}>
+      <span class="n">·</span>
+      <span class="nm"><span class="ic">🔁</span>Vocab Flow</span>
+      <span class="cnt">{% if has_player %}{{ chunks|length + n_supp }} cards →{% else %}not built{% endif %}</span>
+      <span class="sub">Hands-free playback for the words themselves. Each card shows the word, reads it
+      in both voices, pauses for you to say it, then gives the Chinese and the example sentence. High
+      frequency first, extra vocab after. Put it on while your hands are busy — it is the one step that
+      does not need you at the keyboard.{% if not has_player %} Run <b>build_vocab_flow.py</b> for this
+      day to generate it.{% endif %}</span>
+    </a>
+    <a class="c" style="--tc:var(--pat)" href="chunks.html"{% if not has_chunks_page %} aria-disabled="true"{% endif %}>
+      <span class="n">·</span>
+      <span class="nm"><span class="ic">🎯</span>Core Chunks</span>
+      <span class="cnt">{% if has_chunks_page %}{{ chunks|length }} chunks →{% else %}not built{% endif %}</span>
+      <span class="sub">Reference, not a step — the day's own {{ chunks|length }} high-frequency
+      expressions with the scene, the word family and the pattern for each. Practice shows these one
+      answer at a time; this is where you can go back and read them. Marks which ones you have missed
+      in the drills.</span>
+    </a>
+    <a class="c" style="--tc:var(--read)" href="story.html"{% if not has_story %} aria-disabled="true"{% endif %}>
+      <span class="n">2</span>
+      <span class="nm"><span class="ic">🎬</span>Story Player</span>
+      <span class="cnt">{% if has_story %}{{ stories|default([])|length }} stories →{% else %}not built{% endif %}</span>
+      <span class="sub">Sentence-by-sentence playback with speed control. For shadowing and for warming
+      up, not for testing — the transcript is on screen the whole time.</span>
+    </a>
+    <a class="c" style="--tc:var(--pat)" href="patterns.html"{% if not has_patterns %} aria-disabled="true"{% endif %}>
+      <span class="n">3</span>
+      <span class="nm"><span class="ic">🧩</span>Pattern Network</span>
+      <span class="cnt">{% if has_patterns %}6 families →{% else %}not built{% endif %}</span>
+      <span class="sub">The prepositions, the word families and the transitive traps, grouped by the
+      rule that generates them rather than by word. Each family ends in Part 5 drills; the full pattern
+      table stays locked until you have answered them.{% if not has_patterns %} Hand-authored so far —
+      only Day 02 has one.{% endif %}</span>
+    </a>
+    <a class="c" style="--tc:var(--dict)" href="practice.html"{% if not has_practice %} aria-disabled="true"{% endif %}>
+      <span class="n">4</span>
+      <span class="nm"><span class="ic">🎧</span>Practice</span>
+      <span class="cnt">{% if has_practice %}6 steps →{% else %}not built{% endif %}</span>
+      <span class="sub">Where the day actually happens. Vocabulary and Chunk Drill first, then Reading
+      Speed, then the same material by ear — Chunk Dictation and Story Listening, both with the text
+      withheld until you have answered. Ends on the Transfer Test.{% if not has_practice %} Run
+      <b>build_trr.py</b> for this day to generate it.{% endif %}</span>
+    </a>
+    <a class="c" style="--tc:var(--ref)" href="reading.html"{% if not has_reading %} aria-disabled="true"{% endif %}>
+      <span class="n">5</span>
+      <span class="nm"><span class="ic">📄</span>Reading Test</span>
+      <span class="cnt">{% if has_reading %}36 items →{% else %}not built{% endif %}</span>
+      <span class="sub">Parts 5, 6 and 7 mixed and unlabelled, over four passage sets built from today's
+      words — every chunk and every supplementary word appears. Read each set once before the questions
+      open, and the reading rate is recorded. Nothing is marked until you submit a set; then that set
+      opens in full, with all four options translated and a reason each one lives or dies, beside the
+      passage in Chinese.{% if not has_reading %} Run <b>build_reading.py</b> for this day to generate
+      it.{% endif %}</span>
+    </a>
+  </div>
+
+  <div class="budget">
+    <h3>What the four steps cost</h3>
+    <table>
+      <tr><td>1 · Word List — one skim, not end to end</td><td class="t">~10 min</td></tr>
+      <tr><td>· &nbsp;Vocab Flow — hands-free, runs alongside anything</td><td class="t">~55 min</td></tr>
+      <tr><td>2 · Story Player</td><td class="t">~10 min</td></tr>
+      <tr><td>3 · Pattern Network</td><td class="t">~25 min</td></tr>
+      <tr><td>4 · Practice</td><td class="t">~73 min</td></tr>
+      <tr><td>5 · Reading Test — 4 sets, 36 items, review after each set</td><td class="t">~26 min</td></tr>
+      <tr class="sum"><td>Full sequence</td><td class="t">~144 min</td></tr>
+    </table>
+  </div>
+
+  <p class="note">
+    <b>Steps 1 and 3 are the ones to cut when the evening is short.</b> Practice is the only step that
+    tests speed under time pressure, and the Story Player is the only one that trains the ear — those
+    two are the floor. Reading the Word List end to end costs roughly 25 minutes on its own and buys
+    vocabulary-test confidence rather than listening, which is why step 1 is a skim.
+  </p>
+  <p class="note">
+    The Listen / Meaning / Cloze drills that used to live on this page were removed on 2026-08-07.
+    Meaning ran English&nbsp;→&nbsp;Chinese, which trained the translation loop this project exists to
+    break; Listen and Cloze were folded into <b>Chunk Dictation</b>, where one item now does the work all
+    three used to — hear the sentence, then rebuild the chunk from word tiles.
+  </p>
+</div>
+
+</body>
+</html>

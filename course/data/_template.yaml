@@ -1,0 +1,189 @@
+# ══════════════════════════════════════════════════════════════════════════════
+#  DAY TEMPLATE — copy to data/dayNN.yaml and fill in.
+#  After filling in, run:
+#     python scripts/validate_day.py NN     (catches schema errors)
+#     python scripts/build_day.py NN        (generates output/dayNN/ + audio)
+#
+#  Rules of thumb for a full book day:
+#    - one chunk per numbered book headword (39-45 depending on the day;
+#      do NOT trim to a round number) — auto-split into 4 Parts
+#    - ~28 basic + ~68 score_800 + ~32 score_900 supplementary vocab
+#    - 4 stories (2 monologues A/C for Part 4 style, 2 dialogues B/D for Part 3 style)
+#    - Each story has exactly 6 questions in bank; UI shows 3 + "reshuffle" for next 3
+# ══════════════════════════════════════════════════════════════════════════════
+
+day: __                          # integer, 1-30
+theme_zh: "__"                   # Chinese theme (e.g. "雇用", "商務差旅")
+theme_en: "__"                   # English theme (e.g. "Employment", "Business Travel")
+day_icon: "__"                   # single emoji for the whole day (dashboard heatmap)
+                                 # e.g. 💼 Employment, ⚖️ Rules, 🧳 Travel, 🍽 Restaurant
+book_ref: "<your book> · Day __"
+
+# ─── Per-Part scenario theming ─────────────────────────────────────────────────
+# 4 items → matches auto-split of 40 chunks into 4 Parts (A/B/C/D).
+# Colors: pick from this Bento-safe palette (subtle, printable):
+#   blue    #4a6fa5   orange  #c07030   purple  #7a5aa3   teal    #2a8570
+#   red     #b6423a   olive   #8a7d2a   navy    #2d4a70   crimson #a83a5c
+#   forest  #3d7a4a   plum    #6b3a7a   ochre   #b8860b   slate   #556d7a
+# Icon: single emoji that captures the sub-scene (e.g. 💼 for job hunting).
+# Name: 2-4 English words, verb-noun or descriptive noun (e.g. "The Interview").
+parts:
+  - { icon: "__", name: "__ Part A theme", color: "#4a6fa5" }
+  - { icon: "__", name: "__ Part B theme", color: "#c07030" }
+  - { icon: "__", name: "__ Part C theme", color: "#7a5aa3" }
+  - { icon: "__", name: "__ Part D theme", color: "#2a8570" }
+
+# ─── Legacy single-story fallback (safe to omit if `stories:` below is filled) ─
+# Kept for backward compat with any old code paths; the array `stories` is primary.
+mini_story: ""
+story_chunks: []
+
+# ─── 4 stories (mix monologue + dialogue) ─────────────────────────────────────
+# story_chunks: must be exact strings that appear in chunk.chunk or supp vocab
+#               (used to highlight matches in the story HTML — case-insensitive).
+# questions: EXACTLY 6 per story. UI picks the first 3; "reshuffle" reveals 4-6.
+#            correct: 0-based index into options.
+#            type: main_idea | detail | inference | vocab (guides UX badges).
+stories:
+  # ─── Story A ─── monologue (TOEIC Part 4 style: announcement / talk / broadcast)
+  - id: A
+    format: monologue
+    title: "__ short catchy title"
+    text: |
+      __ 100-150 word monologue using ~10-15 chunks from Part A + score_800/900 vocab.
+      Slightly harder than TOEIC average. Natural spoken-english style.
+    story_chunks:  # list every chunk/vocab that appears — drives highlighting
+      - "__"
+    questions:
+      - q: "__ ?"
+        options: ["__", "__", "__", "__"]
+        correct: 0
+        type: main_idea
+      - q: "__ ?"
+        options: ["__", "__", "__", "__"]
+        correct: 0
+        type: detail
+      - q: "__ ?"
+        options: ["__", "__", "__", "__"]
+        correct: 0
+        type: detail
+      - q: "__ ?"
+        options: ["__", "__", "__", "__"]
+        correct: 0
+        type: inference
+      - q: "__ ?"
+        options: ["__", "__", "__", "__"]
+        correct: 0
+        type: detail
+      - q: "__ ?"
+        options: ["__", "__", "__", "__"]
+        correct: 0
+        type: inference
+
+  # ─── Story B ─── dialogue (TOEIC Part 3 style: 2-person conversation)
+  - id: B
+    format: dialogue
+    title: "__ short catchy title"
+    turns:            # 8-10 turns typical, alternate m/f voices
+      - { speaker: "__ Person1", voice: m, text: "__" }
+      - { speaker: "__ Person2", voice: f, text: "__" }
+      - { speaker: "__ Person1", voice: m, text: "__" }
+      - { speaker: "__ Person2", voice: f, text: "__" }
+      - { speaker: "__ Person1", voice: m, text: "__" }
+      - { speaker: "__ Person2", voice: f, text: "__" }
+      - { speaker: "__ Person1", voice: m, text: "__" }
+      - { speaker: "__ Person2", voice: f, text: "__" }
+      - { speaker: "__ Person1", voice: m, text: "__" }
+    story_chunks:
+      - "__"
+    questions:
+      - { q: "__ ?", options: ["__","__","__","__"], correct: 0, type: main_idea }
+      - { q: "__ ?", options: ["__","__","__","__"], correct: 0, type: detail }
+      - { q: "__ ?", options: ["__","__","__","__"], correct: 0, type: detail }
+      - { q: "__ ?", options: ["__","__","__","__"], correct: 0, type: inference }
+      - { q: "__ ?", options: ["__","__","__","__"], correct: 0, type: detail }
+      - { q: "__ ?", options: ["__","__","__","__"], correct: 0, type: inference }
+
+  # ─── Story C ─── monologue (Part C theme)
+  - id: C
+    format: monologue
+    title: "__"
+    text: |
+      __
+    story_chunks: ["__"]
+    questions:
+      - { q: "__ ?", options: ["__","__","__","__"], correct: 0, type: main_idea }
+      - { q: "__ ?", options: ["__","__","__","__"], correct: 0, type: detail }
+      - { q: "__ ?", options: ["__","__","__","__"], correct: 0, type: detail }
+      - { q: "__ ?", options: ["__","__","__","__"], correct: 0, type: inference }
+      - { q: "__ ?", options: ["__","__","__","__"], correct: 0, type: detail }
+      - { q: "__ ?", options: ["__","__","__","__"], correct: 0, type: inference }
+
+  # ─── Story D ─── dialogue (Part D theme)
+  - id: D
+    format: dialogue
+    title: "__"
+    turns:
+      - { speaker: "__", voice: m, text: "__" }
+      - { speaker: "__", voice: f, text: "__" }
+      # ... (8-10 turns total)
+    story_chunks: ["__"]
+    questions:
+      - { q: "__ ?", options: ["__","__","__","__"], correct: 0, type: main_idea }
+      - { q: "__ ?", options: ["__","__","__","__"], correct: 0, type: detail }
+      - { q: "__ ?", options: ["__","__","__","__"], correct: 0, type: detail }
+      - { q: "__ ?", options: ["__","__","__","__"], correct: 0, type: inference }
+      - { q: "__ ?", options: ["__","__","__","__"], correct: 0, type: detail }
+      - { q: "__ ?", options: ["__","__","__","__"], correct: 0, type: inference }
+
+# ─── main chunks: one per numbered book headword (auto-split into 4 Parts) ────
+# Order matters — chunks[0..9] → Part A, [10..19] → Part B, [20..29] → C, [30..39] → D.
+# So keep chunks GROUPED by scene: first 10 for Part A theme, next 10 for Part B, etc.
+#
+# Required fields per chunk:
+#   id             — "01" .. "40" (stable string, used for stats storage keys)
+#   chunk          — English phrase (lowercase preferred unless proper noun)
+#   meaning_zh     — Traditional Chinese meaning
+#   example        — natural sentence using the chunk
+#   example_cloze  — same sentence but chunk replaced with `______`
+#   example_zh     — Chinese translation of example
+#   life_scenario  — 一句話：什麼場合會用（生活化 not exam-only）
+#   family         — word family / near-synonyms / commonly-confused notes
+#   grammar        — pattern hint (e.g. `apply FOR + N`)
+chunks:
+  - id: "01"
+    chunk: "__"
+    meaning_zh: "__"
+    example: "__"
+    example_cloze: "__ ______ __"
+    example_zh: "__"
+    life_scenario: "__"
+    family: "__"
+    grammar: "__"
+  # ... repeat 40 times, ID 01→40
+
+# ─── Supplementary vocab (tiered) ──────────────────────────────────────────────
+# Simple {en, zh, pos} shape. All entries get audio.
+# pos values: n. / v. / adj. / adv. / phr. / n./v. / adj./adv. etc.
+supplementary:
+  basic:            # ~28 items — 550-700 level, likely already known, fast scan
+    - { en: "__", zh: "__", pos: "__" }
+
+  score_800:        # ~68 items — the 700→900 gold zone, prioritized in Anki
+    # LC (Listening Comprehension) — items commonly seen in Part 1-4
+    - { en: "__", zh: "__", pos: "__" }
+    # Part 5,6 — grammar / word choice
+    - { en: "__", zh: "__", pos: "__" }
+    # Part 7 — reading comprehension
+    - { en: "__", zh: "__", pos: "__" }
+
+  score_900:        # ~32 items — infrequent but boost score ceiling
+    # LC
+    - { en: "__", zh: "__", pos: "__" }
+    # Part 5,6
+    - { en: "__", zh: "__", pos: "__" }
+    # Part 7
+    - { en: "__", zh: "__", pos: "__" }
+
+# ─── (Optional) Overrides ─────────────────────────────────────────────────────
+# force_parts: 4      # override auto-split (default: 1 if ≤12 chunks, else 2-4)

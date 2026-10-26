@@ -1,0 +1,2044 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>__TITLE__</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --card: #fff; --ink: #1a1a1a; --ink-soft: #6b6b6b;
+    --accent: #2a7a4f; --accent-soft: #e5f0ea; --accent-strong: #1e5e3d;
+    --read: #4a6fa5; --read-soft: #e6ecf5;
+    --drill: #a34a2a; --drill-soft: #f5ebe5;
+    --sem: #7a5aa3; --sem-soft: #ede5f5;
+    --dict: #1f6f78; --dict-soft: #e2f0f1;
+    --wrong: #c0392b; --wrong-soft: #fdeae7;
+    --border: #e4e0d8; --shadow: 0 1px 2px rgba(0,0,0,.03), 0 6px 18px rgba(0,0,0,.05);
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.5; margin: 0;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 0 18px 90px; }
+  .wrap:focus { outline: none; }
+
+  /* ── top bar ─────────────────────────────────────────────── */
+  .top { background: #fff; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 30; }
+  .top .inner { max-width: 820px; margin: 0 auto; padding: 11px 18px; display: flex; align-items: center; gap: 12px; }
+  .top .brand { font-weight: 700; font-size: 14px; }
+  .top .brand small { color: var(--ink-soft); font-weight: 400; margin-left: 6px; }
+  .badge { padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; letter-spacing: .4px; }
+  .badge.read { background: var(--read-soft); color: var(--read); }
+  .badge.drill { background: var(--drill-soft); color: var(--drill); }
+  .badge.sem { background: var(--sem-soft); color: var(--sem); }
+  .badge.dict { background: var(--dict-soft); color: var(--dict); }
+  .badge.home { background: var(--accent-soft); color: var(--accent); }
+  .top .sp { flex: 1; }
+  .top .exit { font-size: 12px; color: var(--ink-soft); background: none; border: 0; cursor: pointer; padding: 6px; font-family: inherit; }
+  .bar { height: 3px; background: var(--border); }
+  .bar > i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+
+  /* ── generic ─────────────────────────────────────────────── */
+  h2.sec { font-size: 12px; letter-spacing: 1.4px; color: var(--ink-soft); text-transform: uppercase;
+           margin: 30px 0 12px; display: flex; align-items: center; gap: 10px; }
+  h2.sec::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+          box-shadow: var(--shadow); padding: 18px; margin-bottom: 14px; }
+  button { font-family: inherit; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+         background: var(--accent); color: #fff; border: 0; border-radius: 10px;
+         padding: 14px 22px; font-size: 15px; font-weight: 700; cursor: pointer; }
+  .btn:disabled { background: #c9c9c9; cursor: default; }
+  .btn.ghost { background: #fff; color: var(--ink); border: 1px solid var(--border); }
+  .btn.wide { width: 100%; }
+
+  /* ── home ────────────────────────────────────────────────── */
+  .hero { padding: 26px 0 6px; }
+  .hero h1 { font-size: 26px; margin: 0 0 4px; }
+  .hero p { color: var(--ink-soft); margin: 0; font-size: 14px; }
+  .today { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 18px; }
+  .today .m { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 13px; text-align: center; }
+  .today .m b { display: block; font-size: 24px; font-family: var(--mono); }
+  .today .m span { font-size: 10.5px; color: var(--ink-soft); letter-spacing: .5px; text-transform: uppercase; }
+
+  .unit { background: #fff; border: 1px solid var(--border); border-left: 4px solid var(--uc);
+          border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+  .unit .hd { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .unit .tag { font-family: var(--mono); font-size: 10.5px; letter-spacing: 1px; color: var(--uc); font-weight: 700; }
+  .unit .ttl { font-size: 16px; font-weight: 700; }
+  .unit .meta { font-family: var(--mono); font-size: 11.5px; color: var(--ink-soft); margin: 6px 0 12px; }
+  .unit .done { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--accent);
+                background: var(--accent-soft); padding: 3px 9px; border-radius: 10px; }
+  /* First level is the day's SEQUENCE, not a menu. Six tiles of equal visual
+     weight could not express an order, so the order lived in a footnote and the
+     layout quietly contradicted it. A numbered list says it in the layout. */
+  .steps { display: flex; flex-direction: column; gap: 10px; }
+  .step { background: #fff; border: 1px solid var(--border); border-left: 5px solid var(--tc);
+          border-radius: 13px; box-shadow: var(--shadow); padding: 15px 16px; cursor: pointer;
+          text-align: left; width: 100%; color: var(--ink); font-size: 14px;
+          display: grid; grid-template-columns: 30px 1fr auto; gap: 4px 13px; align-items: center; }
+  .step .n { grid-area: 1 / 1 / 3 / 2; align-self: start; margin-top: 2px;
+             width: 30px; height: 30px; border-radius: 50%; background: #f2f0ec; color: var(--ink-soft);
+             font-family: var(--mono); font-size: 13px; font-weight: 700;
+             display: flex; align-items: center; justify-content: center; }
+  .step.on .n { background: var(--tc); color: #fff; }
+  .step .nm { grid-area: 1 / 2 / 2 / 3; font-size: 17px; font-weight: 700; line-height: 1.3; }
+  .step .nm .ic { margin-right: 7px; }
+  .step .cnt { grid-area: 1 / 3 / 3 / 4; font-family: var(--mono); font-size: 12.5px; font-weight: 700;
+               color: var(--tc); white-space: nowrap; align-self: center; }
+  .step .sub { grid-area: 2 / 2 / 3 / 3; font-size: 12.5px; color: var(--ink-soft); line-height: 1.5; }
+  .step .prog { grid-area: 3 / 2 / 4 / 4; height: 4px; background: var(--border); border-radius: 2px;
+                overflow: hidden; margin-top: 8px; }
+  .step .prog > i { display: block; height: 100%; background: var(--tc); }
+
+  /* ── dictation ───────────────────────────────────────────── */
+  .playwrap { text-align: center; padding: 12px 0 20px; }
+  .playbtn { width: 92px; height: 92px; border-radius: 50%; border: 0; cursor: pointer;
+             background: var(--dict); color: #fff; font-size: 34px; line-height: 1;
+             box-shadow: 0 6px 20px rgba(31,111,120,.28); }
+  .playbtn:active { background: var(--accent-strong); }
+  .playbtn.on { animation: pulse 1s ease-out infinite; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(31,111,120,.35); } 100% { box-shadow: 0 0 0 22px rgba(31,111,120,0); } }
+  .playmeta { font-family: var(--mono); font-size: 11.5px; color: var(--ink-soft); margin-top: 11px; letter-spacing: .4px; }
+  .slots { min-height: 58px; border: 1.5px dashed var(--border); border-radius: 12px;
+           background: #fbfaf7; padding: 10px; display: flex; flex-wrap: wrap; gap: 8px;
+           align-items: center; margin-bottom: 16px; }
+  .slots.filled { border-style: solid; border-color: var(--dict); background: var(--dict-soft); }
+  .slots .ph { color: var(--ink-soft); font-size: 13.5px; padding: 0 4px; }
+  .bank { display: flex; flex-wrap: wrap; gap: 9px; }
+  .wt .tk { font-family: var(--mono); font-size: 10px; color: var(--ink-soft); margin-right: 7px; }
+  .wt.placed .tk, .slots .wt .tk { display: none; }
+  .wt { border: 1px solid var(--border); background: #fff; border-radius: 9px; cursor: pointer;
+        padding: 11px 15px; font-size: 16px; font-weight: 600; color: var(--ink); font-family: inherit;
+        line-height: 1.2; }
+  .wt.placed { background: var(--dict); border-color: var(--dict); color: #fff; }
+  .wt.spent { visibility: hidden; }
+  .wt:disabled { cursor: default; }
+  .slots.ok { border-color: var(--accent); background: var(--accent-soft); }
+  .slots.no { border-color: var(--wrong); background: var(--wrong-soft); }
+  .slots.ok .wt.placed { background: var(--accent); border-color: var(--accent); }
+  .slots.no .wt.placed { background: var(--wrong); border-color: var(--wrong); }
+  .reveal { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 14px; }
+  .reveal .sent { font-size: 16.5px; line-height: 1.75; }
+  .reveal .sent em { font-style: normal; background: #e8f0e9; border-bottom: 2px solid #9dbfa8;
+                     border-radius: 3px; padding: 0 2px; font-weight: 600; }
+  .reveal .zh { font-size: 13.5px; color: var(--ink-soft); margin-top: 8px; line-height: 1.7; }
+  .reveal .gr { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); margin-top: 8px; display: block; }
+  .giveup { background: none; border: 0; color: var(--ink-soft); font-size: 12.5px; cursor: pointer;
+            font-family: inherit; text-decoration: underline; padding: 14px 0 0; }
+
+  /* Second level = uniform items, so a scannable list rather than more cards */
+  .ulist { display: flex; flex-direction: column; gap: 1px; background: var(--border);
+           border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .ulist button { background: #fff; border: 0; width: 100%; text-align: left; cursor: pointer;
+                  display: flex; align-items: center; gap: 12px; padding: 15px 16px;
+                  font-size: 15px; color: var(--ink); }
+  .ulist button .u { font-family: var(--mono); font-size: 11px; font-weight: 700;
+                     color: var(--ink-soft); letter-spacing: 1px; flex-shrink: 0; width: 46px; }
+  .ulist button .t { flex: 1; line-height: 1.35; }
+  .ulist button .t em { font-style: normal; display: block; font-size: 12px; color: var(--ink-soft); }
+  .ulist button .q { font-family: var(--mono); font-size: 12.5px; color: var(--ink-soft); }
+  .ulist button .go { color: var(--ink-soft); }
+  .ulist button.ok .q { color: var(--accent); font-weight: 700; }
+  .back { background: none; border: 0; color: var(--ink-soft); font-size: 13px; cursor: pointer;
+          padding: 16px 0 4px; font-family: inherit; }
+
+  .saverow { display: flex; align-items: center; gap: 10px; margin-top: 22px;
+             padding-top: 14px; border-top: 1px solid var(--border); }
+  .sync { font-family: var(--mono); font-size: 11.5px; color: var(--accent); }
+  .sync.offline { color: var(--drill); }
+  .lnk { background: none; border: 1px solid var(--border); border-radius: 7px; cursor: pointer;
+         font-size: 12px; color: var(--ink-soft); padding: 5px 11px; font-family: inherit; }
+
+  .resume { display: flex; align-items: center; gap: 13px; width: 100%; text-align: left;
+            background: #fff; border: 1px solid var(--accent); border-left: 5px solid var(--accent);
+            border-radius: 13px; box-shadow: var(--shadow); padding: 15px 16px; cursor: pointer;
+            font-size: 15px; color: var(--ink); font-family: inherit; }
+  .resume .ic { font-size: 23px; line-height: 1; }
+  .resume .t { flex: 1; line-height: 1.35; }
+  .resume .t em { font-style: normal; display: block; font-size: 12px; color: var(--ink-soft);
+                  font-family: var(--mono); margin-top: 3px; }
+  .resume .q { font-family: var(--mono); font-size: 12.5px; font-weight: 700; color: var(--accent); }
+  .resume .go { color: var(--accent); }
+
+  /* ── reading ─────────────────────────────────────────────── */
+  .passage { font-size: 17.5px; line-height: 2.05; letter-spacing: .1px; }
+  .passage .sp { display: block; font-size: 12px; font-weight: 700; color: var(--ink-soft);
+                 letter-spacing: .5px; margin: 14px 0 2px; }
+  .passage p { margin: 0 0 6px; }
+  /* box-shadow instead of padding: gives the chunk a visual block without
+     pushing the following punctuation away from it */
+  .ck { background: #e8f0e9; border-bottom: 2px solid #9dbfa8; border-radius: 3px;
+        box-shadow: 0 0 0 2px #e8f0e9; font-weight: 600; cursor: pointer; }
+  .bd { color: #c8c3b8; font-style: normal; padding: 0 1px; user-select: none; }
+  /* Three cue levels off one markup pass — scaffolding fades across the four
+     texts rather than across three reads of the same text. */
+  .passage.cue-chunk .bd { display: none; }
+  .passage.cue-plain .bd { display: none; }
+  .passage.cue-plain .ck { background: none; border-bottom: 0; box-shadow: none;
+                           font-weight: inherit; cursor: default; }
+  .plain .ck { background: none; border: 0; box-shadow: none; font-weight: inherit; cursor: default; }
+  .plain .bd { display: none; }
+
+  /* ── split-it-yourself ────────────────────────────────────────────────────
+     Text 1 used to hand over the sense groups already marked. Reading someone
+     else's marks is not the skill the exam asks for — no one marks Part 7 for
+     you — so the first pass is now yours to cut, and the marks only appear
+     afterwards as the answer key. Self-generated cues also outlast given ones
+     on delayed recall, which is the horizon that matters here. */
+  .seg { font-size: 17.5px; line-height: 2.4; letter-spacing: .1px; }
+  .seg .sp { display: block; font-size: 12px; font-weight: 700; color: var(--ink-soft);
+             letter-spacing: .5px; margin: 14px 0 2px; }
+  .seg p { margin: 0 0 8px; }
+  /* The gap is the control, not the word. Wide enough to hit on a phone
+     without the words drifting apart into a list. */
+  .gap { display: inline-block; width: 12px; height: 1.35em; vertical-align: -.35em;
+         margin: 0 -1px; cursor: pointer; position: relative; }
+  .gap::before { content: ''; position: absolute; left: 50%; top: 12%; bottom: 12%;
+                 width: 2px; transform: translateX(-50%); background: transparent;
+                 border-radius: 1px; }
+  .gap:hover::before { background: #d9d4c8; }
+  .gap.on::before { background: var(--ink); }
+  .seg.done .gap { cursor: default; }
+  .seg.done .gap:hover::before { background: transparent; }
+  /* An unscored cut of your own recedes to grey — it is neither a hit nor a
+     mistake, and leaving it as dark as the text would read as a verdict. */
+  .seg.done .gap.on::before { background: #c8c3b8; }
+  /* After marking: green = you found a real sense-group break, red = you cut
+     through the middle of a chunk, grey = harmless extra cut. A missed break
+     shows as a hollow mark so the answer key is visible without scoring it. */
+  .seg.done .gap.hit::before { background: var(--accent); }
+  .seg.done .gap.cut::before { background: var(--wrong); }
+  .seg.done .gap.miss::before {
+    background: repeating-linear-gradient(#c8c3b8 0 3px, transparent 3px 6px); }
+  /* While you are still cutting, the chunks must look like ordinary words —
+     highlighting them would hand back the very boundaries you are being asked
+     to find, which is the whole thing this screen exists to stop. They light up
+     only in the reveal below. */
+  .seg .ck { background: none; border-bottom: 0; box-shadow: none;
+             font-weight: inherit; cursor: default; }
+  .seg.done .ck { background: #e8f0e9; border-bottom: 2px solid #9dbfa8;
+                  box-shadow: 0 0 0 2px #e8f0e9; font-weight: 600; cursor: pointer; }
+  .segbar { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 14px; }
+  .segbar .pill { font-family: var(--mono); font-size: 11.5px; padding: 3px 9px;
+                  border-radius: 20px; background: #f2f0ec; color: var(--ink-soft); }
+  .segbar .pill b { color: var(--ink); }
+  .segbar .pill.good b { color: var(--accent); }
+  .segbar .pill.bad b { color: var(--wrong); }
+
+  .seqrow { display: flex; align-items: center; gap: 12px; padding: 15px 16px; background: #fff;
+            border: 0; width: 100%; text-align: left; cursor: pointer; font-size: 15px; color: var(--ink); }
+  .seqrow .n { font-family: var(--mono); font-size: 12px; font-weight: 700; width: 22px;
+               height: 22px; border-radius: 50%; background: #f2f0ec; color: var(--ink-soft);
+               display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .seqrow.ok .n { background: var(--accent); color: #fff; }
+  .seqrow .t { flex: 1; line-height: 1.35; }
+  .seqrow .t em { font-style: normal; display: block; font-size: 11.5px; color: var(--ink-soft);
+                  font-family: var(--mono); margin-top: 2px; }
+  .seqrow .q { font-family: var(--mono); font-size: 12.5px; color: var(--ink-soft); }
+  .seqrow.ok .q { color: var(--accent); font-weight: 700; }
+  .fmt { font-size: 10px; font-family: var(--mono); padding: 1px 6px; border-radius: 4px;
+         background: #f2f0ec; color: var(--ink-soft); margin-left: 6px; }
+
+  .timer { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid var(--border);
+           border-radius: 10px; padding: 11px 14px; margin-bottom: 14px; }
+  .timer .t { font-family: var(--mono); font-size: 20px; font-weight: 700; min-width: 62px; }
+  .timer .t.over { color: var(--drill); }
+  .timer .track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .timer .track > i { display: block; height: 100%; background: var(--read); width: 0; }
+  .timer .track > i.over { background: var(--drill); }
+  .timer .goal { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); }
+
+  .wpmcard { text-align: center; padding: 26px 18px; }
+  .wpmcard b { display: block; font-family: var(--mono); font-size: 46px; line-height: 1.1; }
+  .wpmcard span { font-size: 12px; color: var(--ink-soft); letter-spacing: 1px; text-transform: uppercase; }
+  .wpmcard .cmp { margin-top: 10px; font-size: 13px; color: var(--ink-soft); }
+
+  /* ── questions ───────────────────────────────────────────── */
+  .qnum { font-family: var(--mono); font-size: 11px; letter-spacing: 1px; color: var(--ink-soft); margin-bottom: 8px; }
+  .qtype { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase;
+           padding: 2px 7px; border-radius: 5px; background: #f2f0ec; color: var(--ink-soft); margin-left: 8px; }
+  .qstem { font-size: 17px; line-height: 1.6; margin-bottom: 16px; }
+  .qstem em { font-style: normal; background: #fff2c2; padding: 0 3px; border-radius: 3px; }
+  .opts { display: flex; flex-direction: column; gap: 9px; }
+  .opt { display: flex; align-items: flex-start; gap: 11px; text-align: left; width: 100%;
+         background: #fff; border: 1px solid var(--border); border-radius: 10px;
+         padding: 13px 15px; font-size: 15px; cursor: pointer; color: var(--ink); line-height: 1.45; }
+  .opt .k { font-family: var(--mono); font-weight: 700; color: var(--ink-soft); flex-shrink: 0; }
+  .opt.focus { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(26,26,26,.10); }
+  .opt.focus .k { color: var(--ink); }
+  .opt.pick { border-color: var(--accent); background: var(--accent-soft); }
+  .kbd { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); letter-spacing: .2px; }
+  .rt { font-family: var(--mono); font-size: 11.5px; color: var(--ink-soft); margin-left: 9px;
+        padding: 2px 7px; border-radius: 5px; background: #f2f0ec; }
+  .rt.slow { background: var(--drill-soft); color: var(--drill); }
+  .opt.ok { border-color: var(--accent); background: var(--accent-soft); }
+  .opt.no { border-color: var(--wrong); background: var(--wrong-soft); }
+  .opt:disabled { cursor: default; }
+  .why { margin-top: 14px; background: #faf9f6; border: 1px solid var(--border); border-left: 3px solid var(--accent);
+         border-radius: 8px; padding: 12px 14px; font-size: 13.5px; line-height: 1.65; }
+  .why b { display: block; font-size: 11px; letter-spacing: .8px; text-transform: uppercase;
+           color: var(--ink-soft); margin-bottom: 5px; }
+  .why .gr { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); margin-top: 7px; display: block; }
+  .snd { background: none; border: 1px solid var(--border); border-radius: 8px; width: 34px; height: 34px;
+         cursor: pointer; font-size: 15px; line-height: 1; flex-shrink: 0; }
+
+  .field { font-family: var(--mono); font-size: 12px; white-space: pre; overflow-x: auto;
+           background: #fbfaf7; border: 1px solid var(--border); border-radius: 10px;
+           padding: 14px; margin-bottom: 16px; line-height: 1.55; }
+
+  .foot { position: fixed; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,.96);
+          border-top: 1px solid var(--border); backdrop-filter: blur(8px); z-index: 30; }
+  .foot .inner { max-width: 820px; margin: 0 auto; padding: 12px 18px; display: flex; gap: 10px; align-items: center; }
+  .foot .info { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); }
+
+  .rows { display: flex; flex-direction: column; gap: 1px; background: var(--border);
+          border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .rows .r { background: #fff; display: flex; align-items: center; gap: 10px; padding: 11px 14px; font-size: 14px; }
+  .rows .r .n { margin-left: auto; font-family: var(--mono); font-weight: 700; }
+  .rows .r .n.bad { color: var(--wrong); }
+  .rows .r small { color: var(--ink-soft); font-size: 12px; }
+
+  @media (max-width: 560px) {
+    .passage { font-size: 16.5px; line-height: 1.95; }
+    .today { grid-template-columns: 1fr 1fr 1fr; }
+    .wpmcard b { font-size: 38px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="inner">
+    <div class="brand" id="brand"></div>
+    <span class="badge home" id="phase">HOME</span>
+    <div class="sp"></div>
+    <button class="exit" id="exit" style="display:none">Exit</button>
+  </div>
+  <div class="bar"><i id="pbar"></i></div>
+</div>
+
+<div class="wrap" id="app" tabindex="-1"></div>
+
+<div class="foot" id="foot" style="display:none"><div class="inner" id="footInner"></div></div>
+
+<!-- Every reviewable item across all days, plus the schedule that ages them.
+     Both are shared files: the browser fetches them once and caches, so the
+     review queue costs nothing extra on each day's page. -->
+<script src="../bank.js"></script>
+<script src="../srs.js"></script>
+
+<script>
+const D = /*__DATA__*/;
+const KEY = 'toeic-trr-day' + String(D.day).padStart(2,'0');
+const DAYTAG = 'day' + String(D.day).padStart(2,'0');
+const app = document.getElementById('app');
+const foot = document.getElementById('foot'), footInner = document.getElementById('footInner');
+const phaseEl = document.getElementById('phase'), pbar = document.getElementById('pbar');
+const exitBtn = document.getElementById('exit');
+document.getElementById('brand').innerHTML =
+  D.icon + ' Day ' + String(D.day).padStart(2,'0') + ' <small>' + D.themeEn + '</small>';
+
+const GOAL_P2 = 150, GOAL_P3 = 180, GOAL_TRANSFER = 180;
+
+/* ── storage ──────────────────────────────────────────────────────────────
+   Two tiers. localStorage is the immediate write so nothing is ever lost
+   mid-session; output/progress/dayNN.json is the record that survives, because
+   localStorage is bound to the origin (file:// and http://localhost keep
+   separate, invisible copies) and dies with any cache clear.
+   Served by scripts/serve.py; opening the file directly still works, it just
+   cannot sync until you come back through the server. */
+const EMPTY = {units:{}, transfer:null, log:[]};
+
+function load() {
+  try { return JSON.parse(localStorage.getItem(KEY)) || {...EMPTY}; }
+  catch(e) { return {...EMPTY}; }
+}
+let S = load();
+let SYNC = 'local';                 // local | syncing | saved | offline
+let syncTimer = null;
+
+function save(s) {
+  localStorage.setItem(KEY, JSON.stringify(s));
+  clearTimeout(syncTimer);          // coalesce bursts of answers into one write
+  syncTimer = setTimeout(push, 400);
+}
+
+function push() {
+  fetch('/api/progress/' + D.day, {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(S)
+  }).then(r => r.ok ? r.json() : Promise.reject())
+    .then(() => { SYNC = 'saved'; paintSync(); })
+    .catch(() => { SYNC = 'offline'; paintSync(); });
+}
+
+/* The #sync element only exists on the home screen, so this doubles as
+   "is the user still sitting on home?" */
+const onHome = () => !!document.getElementById('sync');
+
+/* Pull the file copy on boot. It wins when it holds more answers than the
+   local copy — that is the case where this browser/origin is behind.
+   Home is painted immediately from local data rather than waiting on the
+   network: the page used to be clickable while the fetch was still in flight,
+   and the response then called home() underneath whatever screen you had just
+   opened — which looked exactly like the button doing nothing. */
+function boot() {
+  home();
+
+  // Adopt the shared schedule and backfill anything answered before it existed.
+  // Repaint afterwards: the review count is not knowable at first paint, and a
+  // migration can turn an empty queue into 200 due items.
+  if (window.SRS) {
+    SRS.boot().then(() => { if (onHome()) home(); }).catch(() => {});
+  }
+
+  fetch('/api/progress/' + D.day)
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(rec => {
+      SYNC = 'saved';
+      const fresher = rec && (rec.log || []).length > (S.log || []).length;
+      if (fresher) {
+        S = rec;
+        localStorage.setItem(KEY, JSON.stringify(S));
+        if (onHome()) home();      // never redraw over a screen you navigated to
+      }
+      paintSync();
+    })
+    .catch(() => { SYNC = 'offline'; paintSync(); });
+}
+
+function paintSync() {
+  const el = document.getElementById('sync');
+  if (!el) return;
+  const n = (S.log || []).length;
+  el.className = 'sync ' + SYNC;
+  el.textContent = SYNC === 'offline'
+    ? '⚠ not saving to disk — open via serve.py'
+    : (n ? n + ' answers saved' : 'saved to disk');
+  el.title = SYNC === 'offline'
+    ? 'Progress is only in this browser. Run: python3 scripts/serve.py'
+    : 'Progress is written to output/progress/day' + String(D.day).padStart(2,'0') + '.json';
+}
+
+function logAnswer(kind, correct, meta) {
+  S.log.push({kind, correct, ...meta, ts: Date.now()});
+  save(S);
+  // Same answer, second home: the day record is the transcript, the schedule is
+  // what brings the item back weeks later. Keyed by day because chunk ids
+  // restart at 01 every day and would otherwise collide.
+  // A review question carries the key of the day it came from, not this one.
+  if (!window.SRS || !meta) return;
+  const key = meta.srsKey ||
+    (meta.cid !== undefined && meta.cid !== null ? DAYTAG + ':' + meta.cid : null);
+  if (key) SRS.record(key, meta.srsKind || kind, correct, meta.rt || 0);
+}
+
+/* Manual belt-and-braces backup, works even opened straight off disk. */
+function exportProgress() {
+  const name = 'toeic-day' + String(D.day).padStart(2,'0') + '-progress.json';
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(S, null, 1)], {type:'application/json'}));
+  a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function importProgress() {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'application/json';
+  inp.onchange = () => {
+    const f = inp.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const rec = JSON.parse(r.result);
+        if (!rec || typeof rec !== 'object' || !('log' in rec)) throw 0;
+        S = rec; save(S); home();
+      } catch(e) { alert('That file is not a progress export.'); }
+    };
+    r.readAsText(f);
+  };
+  inp.click();
+}
+
+/* ── audio ───────────────────────────────────────────────── */
+let cur = null;
+function stopAudio() {
+  // Clearing onended matters: a queued dialogue would otherwise keep advancing
+  // after the user has already moved on.
+  if (cur) { cur.onended = null; cur.pause(); }
+  cur = null;
+}
+function play(src) {
+  if (!src) return;
+  stopAudio();
+  cur = new Audio(src); cur.play().catch(()=>{});
+}
+/* Dialogue stories are one file per turn — chain them so the conversation
+   plays through as a single listening pass. */
+function playSeq(list, onEnd) {
+  stopAudio();
+  let i = 0;
+  const step = () => {
+    if (i >= list.length) { cur = null; if (onEnd) onEnd(); return; }
+    cur = new Audio(list[i++]);
+    cur.onended = step;
+    cur.play().catch(step);
+  };
+  step();
+}
+
+/* ── helpers ─────────────────────────────────────────────── */
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const KEYS = ['A','B','C','D'];
+function setPhase(txt, cls) { phaseEl.textContent = txt; phaseEl.className = 'badge ' + cls; }
+function setBar(p) { pbar.style.width = Math.max(0, Math.min(100, p*100)) + '%'; }
+function setFoot(html) {
+  if (!html) { foot.style.display = 'none'; return; }
+  foot.style.display = ''; footInner.innerHTML = html;
+}
+function fmt(ms) {
+  const s = Math.floor(ms/1000);
+  return String(Math.floor(s/60)) + ':' + String(s%60).padStart(2,'0');
+}
+/* Floor the elapsed time: an accidental double-tap on Done reading divides by
+   ~0 and reports Infinity wpm, which then poisons the averages and the
+   baseline. Nobody reads 120 words in under a second, so anything below the
+   floor is a misclick, not a score. */
+const MIN_READ_MS = 2000;
+function wpmOf(words, ms) { return Math.round(words / (Math.max(ms, MIN_READ_MS)/60000)); }
+const tooFast = ms => ms < MIN_READ_MS;
+
+exitBtn.onclick = () => { if (timer) clearInterval(timer); stopAudio(); home(); };
+
+/* ── HOME ────────────────────────────────────────────────── */
+function home() {
+  setPhase('HOME','home'); setBar(0); setFoot(null); exitBtn.style.display = 'none';
+  window.scrollTo(0,0);
+
+  const doneUnits = D.units.filter(u => (S.units[u.id]||{}).done).length;
+  const tw = S.transfer ? S.transfer.wpm : null;
+  const acc = kind => {
+    const l = S.log.filter(x => x.kind === kind);
+    return l.length ? Math.round(100*l.filter(x=>x.correct).length/l.length) : null;
+  };
+  const drillAcc = acc('drill'), vocabAcc = acc('vocab'), semAcc = acc('sem');
+  const dictLog = S.log.filter(l => l.kind === 'dict');
+  const dictAcc = acc('dict'), bossAcc = acc('boss'), trrAcc = acc('trr');
+  // How many answers came back slower than the exam allows. A step can be 90%
+  // correct and still be the reason you run out of time in Part 7.
+  const slowOf = kind => {
+    const l = S.log.filter(x => x.kind === kind && x.rt > 0);
+    return l.length ? l.filter(x => x.rt > 20000).length : 0;
+  };
+  // Shown on a step once it has been answered at all: a finished step that
+  // reports only its question count is hiding the one number worth acting on.
+  const tag = (a, slow, base) => {
+    if (a === null) return base;
+    return a + '%' + (slow ? ' · ' + slow + ' slow' : '') + ' · ' + base;
+  };
+  // "Heard it first time" is the number that actually tracks decoding: getting
+  // the tiles right after five replays is a different skill from hearing it.
+  const oneShot = dictLog.length
+    ? Math.round(100*dictLog.filter(l => l.correct && l.plays <= 1).length/dictLog.length) : null;
+
+  const nDict = D.units.reduce((a,u) => a + u.dictation.length, 0);
+  const nDrill = D.units.reduce((a,u) => a + u.drill.length, 0);
+  const nSemAll = D.units.reduce((a,u) => a + u.fields.reduce((b,f) => b + f.qs.length, 0), 0);
+  const bossQ = D.units.reduce((a,u) => a + u.boss.qs.length, 0);
+  const dn = k => D.units.filter(u => (S.units[u.id]||{})[k]).length;
+
+  /* Order is pedagogical, not preference. Vocabulary knowledge is the single
+     strongest predictor of L2 listening, so the words come first and the ear
+     work is the destination — dictating a chunk you have never met is not a
+     hard exercise, it is an impossible one. */
+  const STEPS = [
+    {k:'sem',   ic:'🧠', nm:'Vocabulary',      tc:'var(--sem)',   go:"typeScreen('sem')",
+     sub:'Semantic Network — every distractor comes from the same field, so all four options are ' +
+         'correct English. Decide from the situation alone.',
+     cnt: tag(semAcc, slowOf('sem'), nSemAll + ' Q'), done: dn('sem'), of: 4},
+    {k:'drill', ic:'🎯', nm:'Chunk Drill',     tc:'var(--drill)', go:"typeScreen('drill')",
+     sub:'Collocation across all 40 chunks. Distractors are same-root or near-synonym forms.',
+     cnt: tag(drillAcc, slowOf('drill'), nDrill + ' Q'), done: dn('drill'), of: 4},
+    {k:'read',  ic:'⚡', nm:'Reading Speed',   tc:'var(--read)',  go:'readingScreen()',
+     sub:'You cut the first text into sense groups yourself, then the cues fade across three more. Builds the context the ear work needs.',
+     // Reading Speed is graded in wpm, not percent — but its comprehension
+     // questions still say whether the speed was real or just skimming.
+     cnt: tag(trrAcc, 0, D.units.length + ' texts'), done: dn('read'), of: 4},
+    {k:'dict',  ic:'🎧', nm:'Chunk Dictation', tc:'var(--dict)',  go:"typeScreen('dict')",
+     sub:'By ear now. One play of the chunk itself, then rebuild it from word tiles — nothing on screen until you answer.',
+     cnt: tag(dictAcc, 0, nDict + ' chunks'), done: dn('dict'), of: 4},
+    {k:'boss',  ic:'🐲', nm:'Story Listening', tc:'#1a1a1a',      go:'bossScreen()',
+     sub:'The same stories and the same questions as step 3, but with no transcript. Part 3/4 conditions.',
+     cnt: tag(bossAcc, 0, bossQ + ' Q'), done: dn('boss'), of: 4},
+    {k:'transfer', ic:'📄', nm:'Transfer Test', tc:'#1a1a1a',     go:'startTransfer()',
+     sub:'An unseen text, one pass, no re-reading. The only number here that is not flattered by overlap.',
+     cnt: S.transfer ? S.transfer.wpm + ' wpm' : D.transfer.qs.length + ' Q',
+     done: S.transfer ? 1 : 0, of: 1},
+  ];
+  const stepsDone = STEPS.filter(s => s.done >= s.of).length;
+
+  let h = '<div class="hero"><h1>' + esc(D.themeEn) + '</h1>' +
+    '<p>Vocabulary first, then by ear — six steps, in order.</p>' +
+    '<div class="today">' +
+      '<div class="m"><b>' + stepsDone + '/' + STEPS.length + '</b><span>Steps done</span></div>' +
+      '<div class="m"><b>' + (oneShot !== null ? oneShot + '%' : '—') + '</b><span>First-play</span></div>' +
+      '<div class="m"><b>' + (tw !== null ? tw : '—') + '</b><span>Transfer wpm</span></div>' +
+    '</div></div>';
+
+  // An unfinished long set is the first thing you should see — otherwise the
+  // only visible entry point restarts it from question 1.
+  const R = S.resume;
+  if (R && R.qn < R.total) {
+    const T = TYPE[R.kind] || {ic:'▶', nm:R.kind};
+    h += '<h2 class="sec">Unfinished</h2>' +
+      '<button class="resume" onclick="resumeSession()">' +
+        '<span class="ic">' + T.ic + '</span>' +
+        '<span class="t"><b>Continue ' + esc(T.nm) + '</b>' +
+          '<em>' + (R.scope === 'ALL' ? 'all units' : 'Unit ' + R.scope) +
+          ' · left off at question ' + (R.qn + 1) + ' of ' + R.total + '</em></span>' +
+        '<span class="q">' + R.qn + '/' + R.total + '</span><span class="go">→</span></button>' +
+      '<button class="lnk" style="margin:8px 0 0" onclick="clearResume();home()">Discard and start over</button>';
+  }
+
+  // Today's misses come before Review: these are still warm, and SRS cannot
+  // surface them yet — a wrong answer is not due for another 12 hours.
+  const MP = mistakePool();
+  if (MP.wrong.length || MP.slow.length) {
+    h += '<h2 class="sec">Missed today</h2><div class="ulist">' +
+      '<button onclick="mistakesScreen()"><span class="u">❌</span>' +
+      '<span class="t"><b>' +
+        (MP.wrong.length ? MP.wrong.length + ' still wrong' : 'Nothing wrong') +
+      '</b><em>' +
+        (MP.slow.length ? MP.slow.length + ' more right but over ' + (SLOW_MS/1000) + 's · '
+                        : '') +
+        'drill just these, no need to redo the set' +
+      '</em></span><span class="go">→</span></button></div>';
+  }
+
+  // Review sits above today's flow but outside it: what has faded matters more
+  // than what is new, and it is still your call whether to spend the time.
+  if (window.SRS && window.TOEIC_BANK) {
+    const st = SRS.stats();
+    if (st.due) {
+      // Count days off the keys rather than building the whole pool — home
+      // repaints on every navigation and does not need the questions.
+      const days = [...new Set(SRS.due().map(d => (d.key.match(/^day(\d+):/) || [])[1]))];
+      h += '<h2 class="sec">Faded</h2><div class="ulist">' +
+        '<button onclick="reviewScreen()"><span class="u">🔁</span>' +
+        '<span class="t"><b>Review · ' + st.due + ' due</b><em>' +
+          (days.length ? 'across ' + days.length + ' earlier day' + (days.length > 1 ? 's' : '')
+                       : 'from earlier days') +
+          (st.shaky ? ' · ' + st.shaky + ' right but never fast' : '') +
+        '</em></span><span class="go">→</span></button></div>';
+    }
+  }
+
+  h += '<h2 class="sec">Today, in order</h2><div class="steps">' +
+    STEPS.map((s, i) => {
+      const full = s.done >= s.of;
+      return '<button class="step' + (full ? ' on' : '') + '" style="--tc:' + s.tc + '" onclick="' + s.go + '">' +
+        '<span class="n">' + (full ? '✓' : i+1) + '</span>' +
+        '<span class="nm"><span class="ic">' + s.ic + '</span>' + s.nm + '</span>' +
+        '<span class="cnt">' + s.cnt + ' →</span>' +
+        '<span class="sub">' + s.sub + '</span>' +
+        '<span class="prog"><i style="width:' + (s.of ? s.done/s.of*100 : 0) + '%"></i></span>' +
+      '</button>';
+    }).join('') + '</div>';
+
+  // Any answered step earns its signals. The old gate asked for dictation or
+  // reading-vocab accuracy, so finishing Vocabulary and Chunk Drill — the two
+  // steps that come first — showed nothing at all.
+  const timed = S.log.filter(x => x.rt > 0);
+  if (timed.length || dictAcc !== null || semAcc !== null || drillAcc !== null) {
+    h += '<h2 class="sec">Signals</h2><div class="rows">';
+    if (oneShot !== null) {
+      h += '<div class="r">Heard it on the first play<small>&nbsp;· the decoding indicator</small>' +
+        '<span class="n' + (oneShot < 50 ? ' bad':'') + '">' + oneShot + '%</span></div>';
+    }
+    if (semAcc !== null) {
+      h += '<div class="r">Vocabulary accuracy<small>&nbsp;· meaning from situation, no Chinese</small>' +
+        '<span class="n' + (semAcc < 70 ? ' bad':'') + '">' + semAcc + '%</span></div>';
+    }
+    if (drillAcc !== null) {
+      h += '<div class="r">Chunk drill accuracy<span class="n' + (drillAcc < 70 ? ' bad':'') + '">' +
+        drillAcc + '%</span></div>';
+    }
+    if (vocabAcc !== null) {
+      h += '<div class="r">Meaning-in-context accuracy<small>&nbsp;· the translation-loop indicator</small>' +
+        '<span class="n' + (vocabAcc < 70 ? ' bad':'') + '">' + vocabAcc + '%</span></div>';
+    }
+    // The one that decides whether the accuracy above survives exam pacing.
+    if (timed.length) {
+      const fast = timed.filter(x => x.rt < 10000).length;
+      const auto = Math.round(100 * fast / timed.length);
+      const av = Math.round(timed.reduce((a,x) => a + x.rt, 0) / timed.length / 100) / 10;
+      h += '<div class="r">Answered under 10s<small>&nbsp;· recognised, not worked out</small>' +
+        '<span class="n' + (auto < 50 ? ' bad':'') + '">' + auto + '%</span></div>' +
+        '<div class="r">Average response time<span class="n' + (av > 15 ? ' bad':'') + '">' +
+        av + 's</span></div>';
+    }
+    h += '</div>';
+  }
+
+  h += '<p style="font-size:12px;color:var(--ink-soft);margin-top:26px;line-height:1.7">' +
+       'Steps 1–3 build the words and the context; steps 4–5 take the same material away from your eyes. ' +
+       'Any step can still be entered on its own, but doing 4 before 1 is not a harder exercise — it is an ' +
+       'impossible one.<br>' +
+       'Reading speed targets ramp <b>untimed → 150 → 165 → 180 wpm</b>, then Transfer at ' +
+       GOAL_TRANSFER + ' wpm with ≥80% comprehension. Once you have a baseline the target becomes ' +
+       '<b>your baseline +10%</b>.</p>';
+
+  h += '<div class="saverow">' +
+       '<span class="sync" id="sync"></span><span style="flex:1"></span>' +
+       '<button class="lnk" onclick="exportProgress()">Export</button>' +
+       '<button class="lnk" onclick="importProgress()">Import</button>' +
+       '</div>';
+
+  app.innerHTML = h;
+  paintSync();
+}
+
+/* ── level 2: pick a unit within one practice type ────────── */
+const TYPE = {
+  dict:  {ic:'🎧', nm:'Chunk Dictation', tc:'var(--dict)', badge:'dict',
+          sub:'One play of the chunk, then rebuild it from the scrambled tiles. The example sentence stays hidden until you answer — seeing it first would make this a reading task.'},
+  drill: {ic:'🎯', nm:'Chunk Drill', tc:'var(--drill)', badge:'drill',
+          sub:'Every distractor is a same-root or near-synonym form. Recognising the meaning is not enough.'},
+  sem:   {ic:'🧠', nm:'Vocabulary', tc:'var(--sem)', badge:'sem',
+          sub:'Semantic Network. All four options come from the same field and are correct English — ' +
+              'nothing here can be answered by translating.'},
+  rev:   {ic:'🔁', nm:'Review', tc:'var(--sem)', badge:'sem',
+          sub:'Items from earlier days, ordered by how far recall has decayed.'},
+};
+
+function typeScreen(kind) {
+  const T = TYPE[kind];
+  setPhase(T.nm.toUpperCase(), T.badge); setBar(0); setFoot(null);
+  exitBtn.style.display = ''; window.scrollTo(0,0);
+
+  const nOf = u => kind === 'dict'  ? u.dictation.length
+                 : kind === 'drill' ? u.drill.length
+                 : u.fields.reduce((a,f)=>a+f.qs.length,0);
+  const total = D.units.reduce((a,u) => a + nOf(u), 0);
+
+  let h = '<button class="back" onclick="home()">← All practice</button>' +
+    '<div class="hero" style="padding-top:6px"><h1>' + T.ic + ' ' + T.nm + '</h1>' +
+    '<p>' + T.sub + '</p></div>';
+
+  h += '<button class="btn wide" style="margin:18px 0 12px" onclick="runAll(\'' + kind + '\')">' +
+       'All ' + D.units.length + ' units · ' + total + (kind === 'dict' ? ' chunks →' : ' questions →') + '</button>' +
+       '<h2 class="sec">Or one unit at a time</h2>';
+
+  h += '<div class="ulist">';
+  D.units.forEach(u => {
+    const st = S.units[u.id] || {};
+    const done = st[kind];
+    const label = nOf(u) + (kind === 'dict' ? '' : ' Q') +
+                  (done ? ' · ' + Math.round(100*done.right/done.total) + '%' : '');
+    h += '<button class="' + (done ? 'ok' : '') + '" onclick="jump(\'' + u.id + '\',\'' + kind + '\')">' +
+      '<span class="u">UNIT ' + u.id + '</span>' +
+      '<span class="t">' + u.icon + ' ' + esc(u.title) + '</span>' +
+      '<span class="q">' + label + '</span><span class="go">→</span></button>';
+  });
+  h += '</div>';
+  app.innerHTML = h;
+}
+
+/* Reopen an unfinished set at the exact question it was left on. */
+function resumeSession() {
+  const r = S.resume;
+  if (!r) return home();
+  if (r.scope === 'ALL') return runAll(r.kind);
+  U = D.units.find(u => u.id === r.scope);
+  if (!U) { clearResume(); return home(); }
+  ENTRY = r.kind; SCOPE = r.scope; exitBtn.style.display = '';
+  S.units[U.id] = S.units[U.id] || {};
+  const items = r.kind === 'dict' ? U.dictation
+    : r.kind === 'drill' ? U.drill
+    : U.fields.flatMap(f => f.qs.map(q => ({...q,
+        field: f.title + '\n' + f.members.map(m => '  · ' + m).join('\n')})));
+  const done = {dict: afterDict, drill: afterDrill, sem: afterSem}[r.kind];
+  runQuiz(items, r.kind, done, r);
+}
+
+/* ── review across every day ──────────────────────────────────────────────
+   The day's own flow teaches new material; this is the only surface that
+   reaches backwards. Items come from bank.js (every day's questions) ordered
+   by SRS.due() (most forgotten first), so what you see is decided by how long
+   it has been and how well it went, not by which day you happen to have open.
+
+   Dictation items are excluded as *sources*: rebuilding a chunk from tiles
+   needs its own screen, and the four-option format is what the exam actually
+   asks. Their answers still age the same key, so a chunk drilled by ear on
+   Monday is scheduled alongside one drilled by eye. */
+const REVIEW_MAX = 40;      // one sitting, not a backlog dump
+
+/* The whole due queue, unsliced. Sorting and splitting by outcome has to see
+   every item: capping here would turn "only what I got wrong" into "the wrong
+   ones that happen to be in the most urgent 40", which is a different and much
+   less useful set. The cap is applied when a run actually starts. */
+function reviewPool(now) {
+  if (!window.SRS || !window.TOEIC_BANK) return [];
+  const out = [];
+  for (const d of SRS.due(now)) {
+    const day = parseInt((d.key.match(/^day(\d+):/) || [])[1], 10);
+    const bank = TOEIC_BANK[String(day)];
+    if (!bank) continue;                      // key from a day no longer built
+    const pool = bank.items.filter(i => i.key === d.key && i.kind !== 'dict');
+    if (!pool.length) continue;
+    // Rotate through the key's questions by how many times it has been seen, so
+    // a returning chunk is not always the same sentence with the same options.
+    const pick = pool[d.card.n % pool.length];
+    out.push({...pick.q, srsKey: d.key, srsKind: pick.kind,
+              srcDay: day, srcIcon: bank.icon, srcTheme: bank.theme,
+              wasSlow: d.slowRate >= 0.5, acc: d.acc});
+  }
+  return out;
+}
+
+function reviewScreen() {
+  const items = reviewPool();
+  setPhase('REVIEW','sem'); setBar(0); window.scrollTo(0,0);
+  exitBtn.style.display = '';
+
+  if (!items.length) {
+    const st = SRS.stats();
+    app.innerHTML = '<button class="back" onclick="home()">← All practice</button>' +
+      '<div class="hero" style="padding-top:6px"><h1>🔁 Review</h1>' +
+      '<p>Nothing is due. Items come back on their own schedule — sooner if you ' +
+      'got them wrong, sooner again if you got them right but slowly.</p></div>' +
+      '<div class="rows">' +
+        '<div class="r">Scheduled<span class="n">' + st.total + '</span></div>' +
+        '<div class="r">Consolidated<span class="n">' + st.consolidated + '</span></div>' +
+        '<div class="r">Still learning<span class="n">' + st.learning + '</span></div>' +
+        '<div class="r">Right but never fast<span class="n' + (st.shaky ? ' bad' : '') + '">' +
+          st.shaky + '</span></div>' +
+      '</div>';
+    setFoot(null);
+    return;
+  }
+
+  const days = [...new Set(items.map(i => i.srcDay))].sort((a,b) => a-b);
+  const wrongSet = items.filter(i => i.acc < 1);
+  const slowSet  = items.filter(i => i.acc >= 1 && i.wasSlow);
+
+  // Three doors, not one button. "Everything due" is the honest default, but a
+  // 40-item queue is a big ask on a day that already runs 70 minutes, and the
+  // items you got wrong are worth more per minute than the ones you did not.
+  const row = (id, ic, title, sub, n) => n
+    ? '<button onclick="startReview(\'' + id + '\')"><span class="u">' + ic + '</span>' +
+      '<span class="t"><b>' + title + '</b><em>' + sub + '</em></span>' +
+      '<span class="q">' + (n > REVIEW_MAX ? REVIEW_MAX + ' of ' + n : n) +
+      '</span><span class="go">→</span></button>'
+    : '';
+
+  app.innerHTML = '<button class="back" onclick="home()">← All practice</button>' +
+    '<div class="hero" style="padding-top:6px"><h1>🔁 Review</h1>' +
+    '<p>' + items.length + ' due across Day ' +
+      String(days[0]).padStart(2,'0') + '–' + String(days[days.length-1]).padStart(2,'0') +
+      ', most faded first.</p></div>' +
+    '<div class="ulist">' +
+      row('wrong', '❌', 'Only what I got wrong',
+          'the cheapest minutes in the queue', wrongSet.length) +
+      row('slow', '🐢', 'Only right but slow',
+          'knew it, had to work it out — over ' + (SRS.SLOW_MS/1000) + 's', slowSet.length) +
+      row('all', '🔁', 'Everything due',
+          'across ' + days.length + ' day' + (days.length > 1 ? 's' : '') +
+          ', most faded first', items.length) +
+    '</div>';
+
+  setFoot(null);
+  window.__REVIEW = {all: items, wrong: wrongSet, slow: slowSet};
+}
+
+function startReview(scope) {
+  const R = window.__REVIEW || {all: reviewPool()};
+  const full = (R[scope || 'all'] || R.all || []);
+  if (!full.length) return reviewScreen();
+  // Cap the sitting, not the queue: the rest stays due and comes back next time.
+  const items = full.slice(0, REVIEW_MAX);
+  U = null; SCOPE = 'REV';
+  runQuiz(items, 'rev', () => summary('rev', reviewScreen));
+}
+
+/* Run one practice type straight through all four units. */
+function runAll(kind) {
+  ALLMODE = kind; U = null; SCOPE = 'ALL';
+  const items = kind === 'dict' ? D.units.flatMap(u => u.dictation)
+    : kind === 'drill' ? D.units.flatMap(u => u.drill)
+    : D.units.flatMap(u => u.fields.flatMap(f => f.qs.map(q => ({...q,
+        field: f.title + '\n' + f.members.map(m => '  · ' + m).join('\n')}))));
+  runQuiz(items, kind, (right, total) => {
+    D.units.forEach(u => {
+      S.units[u.id] = S.units[u.id] || {};
+      S.units[u.id][kind] = {right: '?', total: '?'};
+    });
+    ALLMODE = null; save(S);
+    summary(kind, () => typeScreen(kind));
+  }, resumeAt(kind, 'ALL'));
+}
+let ALLMODE = null;
+
+/* One summary for every finished set — all-units and single-unit alike, which
+   previously dropped you straight back to a list with no result at all.
+   A percentage is a grade, not a next step: what you can act on is the list of
+   what went wrong, and the list of what you got right but too slowly. */
+const SLOW_MS = 20000;
+
+function summary(kind, backTo) {
+  const L = LAST;
+  if (!L) return backTo ? backTo() : home();
+  setPhase('RESULT','home'); setBar(1); window.scrollTo(0,0);
+
+  const T = TYPE[kind] || {nm: kind};
+  const pc = Math.round(100 * L.right / L.total);
+  const idx = L.items.map((_, i) => i).filter(i => L.oks[i] !== undefined);
+  const wrong = idx.filter(i => !L.oks[i]);
+  // Right but slow is the quietly dangerous group: it scores as mastery, but in
+  // the exam it is what makes you run out of time.
+  const slow  = idx.filter(i => L.oks[i] && L.rts[i] > SLOW_MS);
+
+  let h = '<div class="card wpmcard"><b>' + pc + '%</b><span>' + esc(T.nm) + '</span>' +
+    '<div class="cmp">' + L.right + ' / ' + L.total + ' correct</div></div>';
+
+  if (wrong.length || slow.length) {
+    h += '<h2 class="sec">Worth going back to</h2><div class="ulist">';
+    if (wrong.length)
+      h += '<button onclick="retry(false)"><span class="u">❌</span>' +
+           '<span class="t"><b>' + wrong.length + ' wrong</b>' +
+           '<em>drill just these again</em></span><span class="go">→</span></button>';
+    if (slow.length)
+      h += '<button onclick="retry(true)"><span class="u">🐢</span>' +
+           '<span class="t"><b>' + slow.length + ' right but over ' + (SLOW_MS/1000) + 's</b>' +
+           '<em>knew it, but had to work it out</em></span><span class="go">→</span></button>';
+    h += '</div>';
+  }
+
+  // by question type — one number cannot tell you whether grammar or meaning
+  // is the hole
+  const byType = {};
+  idx.forEach(i => {
+    const t = L.items[i].type || 'other';
+    byType[t] = byType[t] || [0, 0];
+    byType[t][1]++;
+    if (L.oks[i]) byType[t][0]++;
+  });
+  const types = Object.keys(byType).sort((a,b) => byType[a][0]/byType[a][1] - byType[b][0]/byType[b][1]);
+  if (types.length > 1) {
+    h += '<h2 class="sec">By question type</h2><div class="rows">' +
+      types.map(t => {
+        const [r, n] = byType[t], p = Math.round(100*r/n);
+        return '<div class="r">' + esc(t.replace('_',' ')) +
+               '<span class="n' + (p < 70 ? ' bad' : '') + '">' + r + '/' + n + ' · ' + p + '%</span></div>';
+      }).join('') + '</div>';
+  }
+
+  const timed = idx.filter(i => L.rts[i] > 0);
+  if (timed.length) {
+    const band = (lo, hi) => timed.filter(i => L.rts[i] >= lo && L.rts[i] < hi).length;
+    const av = timed.reduce((a,i) => a + L.rts[i], 0) / timed.length;
+    h += '<h2 class="sec">Response time</h2><div class="rows">' +
+      '<div class="r">Under 10s<small>&nbsp;· automatic</small><span class="n">' + band(0,10000) + '</span></div>' +
+      '<div class="r">10-20s<small>&nbsp;· still reasoning</small><span class="n">' + band(10000,SLOW_MS) + '</span></div>' +
+      '<div class="r">Over 20s<small>&nbsp;· ' +
+        (kind === 'drill' ? 'would overrun Part 5' : 'slow') + '</small><span class="n' +
+        (band(SLOW_MS,1e9) ? ' bad' : '') + '">' + band(SLOW_MS,1e9) + '</span></div>' +
+      '<div class="r">Average<span class="n">' + secs(av) + '</span></div>' +
+      '</div>';
+  }
+
+  app.innerHTML = h;
+  RETURN_TO = backTo || home;
+  setFoot('<button class="btn ghost" onclick="RETURN_TO()">Back</button>' +
+          '<div style="flex:1"></div><button class="btn" onclick="home()">Home</button>');
+}
+let RETURN_TO = null;
+
+/* Re-run only the items that need it. Scores this pass on its own — the point
+   is whether they stick now, not to patch the original percentage. */
+function retry(slowOnly) {
+  const L = LAST;
+  if (!L) return home();
+  const pick = L.items.map((q,i) => i)
+    .filter(i => L.oks[i] !== undefined &&
+                 (slowOnly ? (L.oks[i] && L.rts[i] > SLOW_MS) : !L.oks[i]))
+    .map(i => L.items[i]);
+  if (!pick.length) return;
+  const back = RETURN_TO;
+  runQuiz(pick, L.kind, () => summary(L.kind, back));
+}
+
+/* ── today's mistakes, rebuilt from the log ───────────────────────────────
+   The result screen can only ever show the set you just finished: it reads
+   LAST, which lives in memory and dies with the tab. Nothing was lost though —
+   logAnswer already writes {kind, cid, qid, correct, rt} for every answer and
+   syncs it to output/progress/dayNN.json — so this reads the log back rather
+   than adding a second store. It is also the only surface that reaches today's
+   misses at all: SRS gives a wrong answer LAPSE_INTERVAL (0.5 d) before it is
+   due, so Review is empty on the day you actually made the mistake.
+
+   Scored by LAST attempt, not by worst: an item you missed and then redrilled
+   correctly is no longer wrong, and counting the first attempt forever would
+   mean the number never falls however much you fix. */
+function mistakePool() {
+  const ix = {};
+  D.units.forEach(u => {
+    u.drill.forEach(q => { ix['drill|' + (q.qid || q.cid)] = q; });
+    u.fields.forEach(f => f.qs.forEach(q => {
+      if (q.qid) ix['sem|' + q.qid] =
+        {...q, field: f.title + '\n' + f.members.map(m => '  · ' + m).join('\n')};
+    }));
+  });
+  // Collapse the log to one entry per question, keeping the newest.
+  const last = {};
+  (S.log || []).forEach(l => {
+    if (l.kind !== 'drill' && l.kind !== 'sem') return;
+    // Answers logged before qid existed can only be resolved to their chunk;
+    // point them at that chunk's first question rather than dropping them.
+    const k = l.kind + '|' + (l.qid || (l.cid ? l.cid + ':0' : ''));
+    if (!ix[k]) return;
+    if (!last[k] || l.ts >= last[k].ts) last[k] = l;
+  });
+  const wrong = [], slow = [];
+  Object.keys(last).forEach(k => {
+    const l = last[k], q = {...ix[k], _kind: l.kind};
+    if (!l.correct) wrong.push(q);
+    else if (l.rt > SLOW_MS) slow.push(q);
+  });
+  return {wrong, slow};
+}
+
+function mistakesScreen() {
+  const P = mistakePool();
+  setPhase('TODAY’S MISSES','drill'); setBar(0); setFoot(null);
+  exitBtn.style.display = ''; window.scrollTo(0,0);
+
+  let h = '<button class="back" onclick="home()">← All practice</button>' +
+    '<div class="hero" style="padding-top:6px"><h1>❌ Today’s misses</h1>' +
+    '<p>Everything you got wrong or worked out too slowly today, rebuilt from the ' +
+    'saved record — so it survives closing the tab. Fixing one here removes it ' +
+    'from the list.</p></div>';
+
+  if (!P.wrong.length && !P.slow.length) {
+    h += '<div class="rows"><div class="r">Nothing outstanding<span class="n">—</span></div></div>';
+    app.innerHTML = h;
+    return;
+  }
+
+  const row = (id, ic, title, sub, n) => n
+    ? '<button onclick="startMistakes(\'' + id + '\')"><span class="u">' + ic + '</span>' +
+      '<span class="t"><b>' + title + '</b><em>' + sub + '</em></span>' +
+      '<span class="q">' + n + '</span><span class="go">→</span></button>'
+    : '';
+  h += '<div class="ulist">' +
+    row('wrong', '❌', P.wrong.length + ' still wrong',
+        'last time you answered them, they were wrong', P.wrong.length) +
+    row('slow', '🐢', P.slow.length + ' right but over ' + (SLOW_MS/1000) + 's',
+        'knew it, had to work it out', P.slow.length) +
+    row('all', '🔁', 'Everything worth another pass',
+        'wrong and slow together', P.wrong.length + P.slow.length) +
+    '</div>';
+
+  // Seeing WHICH chunks are involved is half the value — a count tells you how
+  // much is broken, the list tells you what. Two questions on one chunk collapse
+  // to a single row, so the row carries its own count: without it the list looks
+  // shorter than the number in the button above it.
+  const label = q => q.chunk ||
+    (q.field ? q.field.split('\n')[0] : (q.stem || '').slice(0, 64) + '…');
+  const tally = {};
+  P.wrong.forEach(q => { const k = label(q); tally[k] = (tally[k] || 0) + 1; });
+  const names = Object.keys(tally);
+  if (names.length) {
+    h += '<h2 class="sec">Still wrong</h2><div class="rows">' +
+      names.map(n => '<div class="r">' + esc(n) +
+        (tally[n] > 1 ? '<span class="n">' + tally[n] + ' questions</span>' : '') +
+        '</div>').join('') + '</div>';
+  }
+  app.innerHTML = h;
+  window.__MISS = P;
+}
+
+function startMistakes(scope) {
+  const P = window.__MISS || mistakePool();
+  const items = scope === 'all' ? P.wrong.concat(P.slow) : (P[scope] || []);
+  if (!items.length) return mistakesScreen();
+  // Mixed drill and sem questions run as one set; they are the same four-option
+  // format and splitting them would just make two short sittings out of one.
+  // SCOPE stays null so this never writes a resume record: "continue" would
+  // otherwise reopen the full set, which is the opposite of the point, and the
+  // list rebuilds itself from the log anyway.
+  U = null; SCOPE = null; ENTRY = 'miss';
+  runQuiz(items, items[0]._kind || 'drill', () => mistakesScreen());
+}
+
+/* ── unit flow ───────────────────────────────────────────── */
+let U = null, QUEUE = [], QI = 0;
+
+/* ENTRY records how a unit was entered, so finishing a drill returns you to
+   where you came from instead of dragging you through the rest of the sequence. */
+let ENTRY = 'sequence';
+
+/* ── Varied Practice reading sequence ──────────────────────────────────────
+   Four DIFFERENT texts that share the same 40 chunks, with the cues fading
+   across them — rather than three reads of one text. Research comparing the
+   two directly favours varied practice, and transfer to new text depends on
+   vocabulary overlap, which these four stories already have.
+   wpm is tracked per format: dialogue reads faster than monologue by nature,
+   so the two are never averaged together. */
+/* Declared up front, not created by first assignment: the untimed first text
+   never runs `timer = setInterval(...)`, so `if (timer)` in stopRead() threw a
+   ReferenceError and its Done-reading button silently did nothing. */
+let timer = null, t0 = 0;
+
+const SEQ = [
+  {cue: 'split', goal: 0,   name: 'Split it yourself', note: 'you mark the sense groups · untimed'},
+  {cue: 'chunk', goal: 150, name: 'Chunks only', note: 'sense-group marks removed'},
+  {cue: 'plain', goal: 165, name: 'No cues',     note: 'plain text'},
+  {cue: 'plain', goal: 180, name: 'No cues',     note: 'plain text · fastest target'},
+];
+
+/* ── segmentation: parse the cued markup back into tokens + answer key ──────
+   build_trr.py already emits exactly what is needed — <b class="ck"> around a
+   known chunk, <i class="bd"> at a sense-group break — so the answer key is
+   read off the same markup that used to be *shown*. Nothing new to author.
+
+   Three kinds of gap come out of this:
+     gold      a break build_trr marked. Finding one scores.
+     forbidden inside a chunk. Cutting here is the actual error: it is chunk
+               being broken back into words, which is the habit this fights.
+     neutral   everywhere else. Not scored either way — sense-group boundaries
+               genuinely admit more than one right answer, and marking the
+               alternatives wrong would punish correct instincts. */
+function segParse(blocks) {
+  const out = [];
+  blocks.forEach(b => {
+    const host = document.createElement('div');
+    host.innerHTML = b.html;
+    const toks = [];
+    let gold = new Set();
+    const pushWords = (text, ckId) => {
+      text.split(/\s+/).forEach(w => {
+        if (w) toks.push({w: w, ck: ckId});
+      });
+    };
+    let ckN = 0;
+    host.childNodes.forEach(function walk(n) {
+      if (n.nodeType === 3) { pushWords(n.textContent, null); return; }
+      if (n.nodeName === 'B' && n.classList.contains('ck')) {
+        pushWords(n.textContent, 'c' + (ckN++)); return;
+      }
+      if (n.nodeName === 'I' && n.classList.contains('bd')) {
+        if (toks.length) gold.add(toks.length - 1);   // break after the last word
+        return;
+      }
+      n.childNodes.forEach(walk);
+    });
+    // A chunk that swallowed the word before a comma leaves the punctuation
+    // stranded as its own token, and rendering puts a gap in front of it — a
+    // floating " ." with a cut point before it. Glue it back on, remapping the
+    // answer key: a break recorded after the punctuation is a break after the
+    // word it now belongs to.
+    const glued = [], remap = [];
+    toks.forEach(t => {
+      if (glued.length && /^[.,;:!?—–]+$/.test(t.w)) {
+        glued[glued.length - 1] = {...glued[glued.length - 1],
+                                   w: glued[glued.length - 1].w + t.w};
+      } else {
+        glued.push(t);
+      }
+      remap.push(glued.length - 1);
+    });
+    const gold2 = new Set();
+    gold.forEach(i => { if (remap[i] !== undefined) gold2.add(remap[i]); });
+    // A gap that ends the block is not a decision the reader gets to make.
+    gold2.delete(glued.length - 1);
+    out.push({sp: b.sp, toks: glued, gold: gold2});
+  });
+  return out;
+}
+
+/* Gap i sits after token i. Forbidden exactly when the same chunk continues. */
+function segForbidden(toks, i) {
+  return !!(toks[i] && toks[i+1] && toks[i].ck && toks[i].ck === toks[i+1].ck);
+}
+
+let SEGST = null;
+
+function segmentScreen() {
+  const blocks = segParse(U.cued);
+  SEGST = {blocks: blocks, marks: blocks.map(() => new Set()), done: false};
+  setPhase('READ 1 / 4','read'); setBar(.3/4); window.scrollTo(0,0);
+  exitBtn.style.display = '';
+  paintSeg();
+}
+
+function paintSeg() {
+  const St = SEGST;
+  let h = '<h2 class="sec">Text 1 of 4 · Split it yourself</h2><div class="card">';
+
+  if (!St.done) {
+    h += '<div style="font-size:13px;color:var(--ink-soft);margin-bottom:14px;line-height:1.7">' +
+      'Read it once, then <b>tap the gaps</b> where you would pause — the breaks between ' +
+      'sense groups, not between every word. No timer. When you are done, compare with the ' +
+      'marked-up version. There is no single right answer here, so extra cuts do not count ' +
+      'against you — cutting through the middle of a chunk does.</div>';
+  } else {
+    const R = St.result;
+    h += '<div class="segbar">' +
+      '<span class="pill' + (R.caught/Math.max(R.gold,1) >= .6 ? ' good' : '') + '">breaks found <b>' +
+        R.caught + '/' + R.gold + '</b></span>' +
+      '<span class="pill">you cut <b>' + R.cuts + '</b></span>' +
+      '<span class="pill' + (R.through ? ' bad' : '') + '">through a chunk <b>' +
+        R.through + '</b></span>' +
+      '</div>' +
+      '<div style="font-size:13px;color:var(--ink-soft);margin-bottom:14px;line-height:1.7">' +
+      '<b class="ck">Green</b> = a chunk you have learned. Solid green mark = a break you found; ' +
+      'dotted = one you missed; <span style="color:var(--wrong)">red</span> = a cut through the ' +
+      'middle of a chunk. Grey marks are yours and neither right nor wrong.</div>';
+  }
+
+  h += '<div class="seg' + (St.done ? ' done' : '') + '">' +
+    St.blocks.map((b, bi) => {
+      const inner = b.toks.map((t, i) => {
+        const w = '<span class="' + (t.ck ? 'ck' : '') + '">' + esc(t.w) + '</span>';
+        if (i === b.toks.length - 1) return w;
+        const on = St.marks[bi].has(i);
+        let cls = 'gap' + (on ? ' on' : '');
+        if (St.done) {
+          if (on && b.gold.has(i)) cls += ' hit';
+          else if (on && segForbidden(b.toks, i)) cls += ' cut';
+          else if (!on && b.gold.has(i)) cls += ' miss';
+        }
+        return w + '<span class="' + cls + '" data-b="' + bi + '" data-i="' + i + '"></span>';
+      }).join(' ');
+      return (b.sp ? '<span class="sp">' + esc(b.sp) + '</span>' : '') + '<p>' + inner + '</p>';
+    }).join('') + '</div></div>';
+
+  app.innerHTML = h;
+
+  if (!St.done) {
+    app.querySelectorAll('.gap').forEach(el => {
+      el.onclick = () => {
+        const bi = +el.dataset.b, i = +el.dataset.i;
+        const m = St.marks[bi];
+        m.has(i) ? m.delete(i) : m.add(i);
+        el.classList.toggle('on');
+      };
+    });
+    setFoot('<span class="info">' + U.words + ' words · ' + U.format + '</span>' +
+            '<div style="flex:1"></div>' +
+            '<button class="btn" onclick="gradeSeg()">Compare with the marks →</button>');
+  } else {
+    // Tapping a chunk plays it: the point of the reveal is to bind the sound to
+    // the shape you just cut out yourself.
+    app.querySelectorAll('.ck').forEach(el => {
+      el.onclick = () => {
+        const t = el.textContent.trim().toLowerCase();
+        const c = U.chunkList.find(c => c.chunk.toLowerCase() === t) ||
+                  U.chunkList.find(c => t.indexOf(c.chunk.toLowerCase()) >= 0);
+        if (c) play(c.audio);
+      };
+    });
+    setFoot('<button class="btn ghost" onclick="SEGST.done=false;paintSeg()">Mark it again</button>' +
+            '<div style="flex:1"></div>' +
+            '<button class="btn" onclick="finishSeg()">Next text →</button>');
+  }
+}
+
+function gradeSeg() {
+  const St = SEGST;
+  let gold = 0, caught = 0, cuts = 0, through = 0;
+  St.blocks.forEach((b, bi) => {
+    gold += b.gold.size;
+    cuts += St.marks[bi].size;
+    St.marks[bi].forEach(i => {
+      if (b.gold.has(i)) caught++;
+      else if (segForbidden(b.toks, i)) through++;
+    });
+  });
+  St.result = {gold: gold, caught: caught, cuts: cuts, through: through};
+  St.done = true;
+  window.scrollTo(0,0);
+  paintSeg();
+}
+
+/* Recorded like any other step so the sequence screen can tick it off, but
+   deliberately not as wpm: this pass is untimed and a speed number here would
+   sit in the same column as three timed reads and mean something different. */
+function finishSeg() {
+  const R = SEGST.result || {gold:0, caught:0, cuts:0, through:0};
+  S.units[U.id].read = {wpm: 0, ms: 0, cue: 'split', format: U.format, seg: R};
+  S.units[U.id].done = true;
+  save(S);
+  readingScreen();
+}
+
+function jump(id, step) {
+  U = D.units.find(u => u.id === id);
+  ENTRY = step; SCOPE = id;
+  exitBtn.style.display = '';
+  S.units[U.id] = S.units[U.id] || {};
+  ({dict: dictIntro, drill: drillIntro, sem: semIntro}[step])();
+}
+function startUnit(id) { readStep(D.units.findIndex(u => u.id === id)); }
+
+function passageHTML(body, cue) {
+  return '<div class="passage cue-' + cue + '">' +
+    body.map(b => (b.sp ? '<span class="sp">' + esc(b.sp) + '</span>' : '') + '<p>' + b.html + '</p>').join('') +
+    '</div>';
+}
+
+function readingScreen() {
+  setPhase('READING SPEED','read'); setBar(0); setFoot(null);
+  exitBtn.style.display = ''; window.scrollTo(0,0);
+  let h = '<button class="back" onclick="home()">← All practice</button>' +
+    '<div class="hero" style="padding-top:6px"><h1>⚡ Reading Speed</h1>' +
+    '<p>Four different texts sharing the same 40 chunks. You cut the first one into sense ' +
+    'groups yourself, then the cues fade across the rest. Speed comes from processing chunks ' +
+    'as single units — not from skimming.</p></div>' +
+    '<h2 class="sec">Sequence</h2><div class="ulist">';
+  D.units.forEach((u, i) => {
+    const st = S.units[u.id] || {}, s = SEQ[i], r = st.read;
+    h += '<button class="seqrow ' + (r ? 'ok' : '') + '" onclick="readStep(' + i + ')">' +
+      '<span class="n">' + (r ? '✓' : i+1) + '</span>' +
+      '<span class="t">' + u.icon + ' ' + esc(u.title) +
+        '<span class="fmt">' + u.format + '</span>' +
+        '<em>' + s.name + ' · ' + s.note + '</em></span>' +
+      '<span class="q">' + u.words + 'w' +
+        (r ? ' · ' + (r.cue === 'split'
+              ? (r.seg ? r.seg.caught + '/' + r.seg.gold + ' breaks' : 'done')
+              : r.wpm + ' wpm') : '') + '</span>' +
+      '<span class="go">→</span></button>';
+  });
+  h += '</div>';
+
+  // The split pass carries no wpm — it is untimed — so it must not be averaged
+  // in, or Text 1 would drag the format average down towards zero.
+  const timedRead = u => { const r = (S.units[u.id]||{}).read; return r && r.cue !== 'split'; };
+  const mono = D.units.filter(u => u.format === 'monologue' && timedRead(u));
+  const dia  = D.units.filter(u => u.format === 'dialogue'  && timedRead(u));
+  const avg = arr => arr.length ? Math.round(arr.reduce((a,u)=>a+S.units[u.id].read.wpm,0)/arr.length) : null;
+  if (mono.length || dia.length) {
+    h += '<h2 class="sec">Average by format</h2><div class="rows">' +
+      '<div class="r">Monologue <small>&nbsp;· closest to Part 7 prose</small>' +
+        '<span class="n">' + (avg(mono) !== null ? avg(mono) + ' wpm' : '—') + '</span></div>' +
+      '<div class="r">Dialogue <small>&nbsp;· reads faster by nature, not comparable</small>' +
+        '<span class="n">' + (avg(dia) !== null ? avg(dia) + ' wpm' : '—') + '</span></div>' +
+      '</div>';
+  }
+  h += '<p style="font-size:12.5px;color:var(--ink-soft);margin-top:22px;line-height:1.7">' +
+    'Dialogue and monologue wpm are kept apart on purpose — short turns with speaker labels read ' +
+    'faster, so mixing them would flatter your numbers. The Transfer Test is prose, like Part 7.</p>';
+  app.innerHTML = h;
+}
+
+let STEP = 0;
+function readStep(i) {
+  STEP = i; U = D.units[i]; ENTRY = 'read';
+  S.units[U.id] = S.units[U.id] || {};
+  const s = SEQ[i];
+  if (s.cue === 'split') return segmentScreen();
+  exitBtn.style.display = ''; setPhase('READ ' + (i+1) + ' / 4','read');
+  setBar((i + .3) / 4); window.scrollTo(0,0);
+
+  const goalMs = s.goal ? U.words / s.goal * 60000 : 0;
+  let h = '<h2 class="sec">Text ' + (i+1) + ' of 4 · ' + s.name + '</h2>';
+  if (s.goal) {
+    h += '<div class="timer"><span class="t" id="tt">0:00</span>' +
+         '<div class="track"><i id="tk"></i></div>' +
+         '<span class="goal">goal ' + s.goal + ' wpm · ' + fmt(goalMs) + '</span></div>';
+  }
+  h += '<div class="card">';
+  if (s.cue === 'full') {
+    h += '<div style="font-size:13px;color:var(--ink-soft);margin-bottom:14px;line-height:1.7">' +
+      'Read for meaning, no timer. <b class="ck">Green</b> = a chunk you have learned — take it in as ' +
+      '<b>one unit</b>, do not read it word by word. The <span class="bd">|</span> marks are breathing ' +
+      'points between sense groups. Tap any chunk to hear it.</div>';
+  }
+  h += passageHTML(U.cued, s.cue) + '</div>';
+  app.innerHTML = h;
+
+  if (s.cue !== 'plain') {
+    app.querySelectorAll('.ck').forEach(el => {
+      el.onclick = () => {
+        const t = el.textContent.trim().toLowerCase();
+        const c = U.chunkList.find(c => c.chunk.toLowerCase() === t) ||
+                  U.chunkList.find(c => t.indexOf(c.chunk.toLowerCase()) >= 0);
+        if (c) play(c.audio);
+      };
+    });
+  }
+  setFoot('<span class="info">' + U.words + ' words · ' + U.format + '</span><div style="flex:1"></div>' +
+          '<button class="btn" onclick="stopRead()">Done reading →</button>');
+
+  if (s.goal) {
+    t0 = Date.now();
+    const tt = document.getElementById('tt'), tk = document.getElementById('tk');
+    timer = setInterval(() => {
+      const el = Date.now() - t0; tt.textContent = fmt(el);
+      const r = el / goalMs; tk.style.width = Math.min(100, r*100) + '%';
+      if (r > 1) { tk.classList.add('over'); tt.classList.add('over'); }
+    }, 200);
+  } else { t0 = Date.now(); }
+}
+
+function stopRead() {
+  if (timer) { clearInterval(timer); timer = null; }
+  const s = SEQ[STEP], ms = Date.now() - t0, w = wpmOf(U.words, ms);
+  if (!tooFast(ms)) {                        // a misclick is not a reading
+    S.units[U.id].read = {wpm: w, ms, cue: s.cue, format: U.format};
+    save(S);
+  }
+  window.scrollTo(0,0);
+  const sameFmt = D.units.filter((u,i) => i < STEP && u.format === U.format && (S.units[u.id]||{}).read);
+  const prev = sameFmt.length ? S.units[sameFmt[sameFmt.length-1].id].read.wpm : null;
+  app.innerHTML = '<div class="card wpmcard"><b>' + w + '</b><span>words per minute</span>' +
+    '<div class="cmp">' + fmt(ms) + (s.goal ? ' · goal ' + s.goal + ' wpm' : ' · untimed') +
+      (prev ? '<br>previous ' + U.format + ': ' + prev + ' wpm (' + (w>=prev?'+':'') + (w-prev) + ')' : '') +
+    '</div></div>' +
+    '<p style="font-size:13px;color:var(--ink-soft);text-align:center;line-height:1.7">' +
+      'The text is now hidden. Answer from what you understood, not by looking back.</p>';
+  setFoot('<div style="flex:1"></div><button class="btn" onclick="askRead()">Questions →</button>');
+}
+
+function askRead() {
+  const items = U.p2.concat(U.p3).slice(0, 4);
+  runQuiz(items, 'trr', (right, total) => {
+    S.units[U.id].readq = {right, total}; save(S);
+    if (STEP < D.units.length - 1) return nextStep(right, total);
+    readingDone();
+  });
+}
+function nextStep(right, total) {
+  window.scrollTo(0,0); setPhase('TEXT ' + (STEP+1) + ' DONE','home');
+  app.innerHTML = '<div class="card wpmcard"><b>' + S.units[U.id].read.wpm + '</b><span>wpm</span>' +
+    '<div class="cmp">' + right + ' / ' + total + ' correct · text ' + (STEP+1) + ' of 4</div></div>';
+  setFoot('<button class="btn ghost" onclick="readingScreen()">Sequence</button><div style="flex:1"></div>' +
+          '<button class="btn" onclick="readStep(' + (STEP+1) + ')">Next text →</button>');
+}
+function readingDone() {
+  window.scrollTo(0,0); setPhase('SEQUENCE DONE','home'); setBar(1);
+  const mono = D.units.filter(u => u.format === 'monologue' && (S.units[u.id]||{}).read);
+  const avg = mono.length ? Math.round(mono.reduce((a,u)=>a+S.units[u.id].read.wpm,0)/mono.length) : null;
+  app.innerHTML = '<div class="card wpmcard"><b>' + (avg !== null ? avg : '—') + '</b>' +
+    '<span>average monologue wpm</span><div class="cmp">all four texts read</div></div>' +
+    '<div class="rows">' + D.units.map((u,i) => {
+      const r = (S.units[u.id]||{}).read;
+      return '<div class="r">' + (i+1) + '. ' + esc(u.title) + '<small>&nbsp;· ' + SEQ[i].name + '</small>' +
+             '<span class="n">' + (r ? r.wpm + ' wpm' : '—') + '</span></div>';
+    }).join('') + '</div>' +
+    '<p style="font-size:13px;color:var(--ink-soft);margin-top:20px;line-height:1.7">' +
+      'These four share their vocabulary, so they flatter you slightly. The Transfer Test uses a ' +
+      'text with lower overlap — that number is the one that means something.</p>';
+  setFoot('<button class="btn ghost" onclick="home()">Home</button><div style="flex:1"></div>' +
+          '<button class="btn" onclick="startTransfer()">Transfer Test →</button>');
+}
+
+/* ── quiz runner ─────────────────────────────────────────── */
+let Qs = [], QN = 0, QK = '', QDone = null, QRight = 0;
+
+/* ── resume ───────────────────────────────────────────────────────────────
+   An 80-item drill is not one sitting. Without this, closing the tab at Q47
+   throws the session away and the next visit starts at Q1 — the long sets are
+   the ones you would never finish. Only the long sets are tracked; a 5-item
+   reading quiz is cheaper to redo than to bookkeep. */
+const RESUMABLE = new Set(['drill', 'sem', 'dict']);
+let SCOPE = null;                      // 'ALL' | unit id — how this run started
+
+function markResume() {
+  if (!SCOPE || !RESUMABLE.has(QK)) return;
+  S.resume = {kind: QK, scope: SCOPE, qn: QN + 1, right: QRight,
+              total: Qs.length, ts: Date.now()};
+  save(S);
+}
+function clearResume() {
+  if (S.resume) { S.resume = null; save(S); }
+}
+function resumeAt(kind, scope) {
+  const r = S.resume;
+  return (r && r.kind === kind && r.scope === scope && r.qn < r.total) ? r : null;
+}
+
+/* What was answered this sitting, per question index. Stepping back has to
+   replay what you chose rather than re-open the question, or the score and the
+   answer log would double-count on every revisit. */
+let PICKS = [];
+/* How long each question took to answer. TOEIC Part 5 allows roughly 20s per
+   item, so seeing the number per question is what turns "I got it right"
+   into "I got it right fast enough". Revisits do not restart the clock. */
+let RTS = [], QT0 = 0, OKS = [];
+/* A finished run, frozen so the summary can still list what went wrong after
+   PICKS/RTS have been reset by a retry. */
+let LAST = null;
+const secs = ms => (ms / 1000).toFixed(1) + 's';
+function avgRT() {
+  const v = RTS.filter(x => x > 0);
+  return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+}
+
+function runQuiz(items, kind, done, from) {
+  Qs = items; QK = kind; QDone = done;
+  QN = from ? from.qn : 0;
+  QRight = from ? from.right : 0;
+  PICKS = []; RTS = []; OKS = [];
+  renderQ();
+}
+
+function goPrev() {
+  if (QN <= 0) return;
+  QN--; NEXT = null; renderQ();
+}
+function prevBtn() {
+  return QN > 0 ? '<button class="btn ghost" onclick="goPrev()">← Prev</button>' : '';
+}
+function renderQ() {
+  if (QN >= Qs.length) {
+    clearResume();
+    LAST = {kind: QK, items: Qs.slice(), oks: OKS.slice(), rts: RTS.slice(),
+            right: QRight, total: Qs.length};
+    QDone(QRight, Qs.length);
+    return;
+  }
+  const q = Qs[QN];
+  window.scrollTo(0,0);
+  if (QK === 'dict') return renderDict();
+  const isSem = QK === 'sem', isDrill = QK === 'drill', isBoss = QK === 'boss',
+        isRev = QK === 'rev';
+  setPhase(isRev ? 'REVIEW' : isDrill ? 'CHUNK DRILL' : isSem ? 'VOCABULARY'
+             : isBoss ? 'STORY · BY EAR' : 'COMPREHENSION',
+           isRev ? 'sem' : isDrill ? 'drill' : isSem ? 'sem' : isBoss ? 'dict' : 'read');
+  // The question type and the semantic field are both giveaways: "NOT" or
+  // "meaning" tells you what is being tested, and the field lists the very
+  // words the options are drawn from. Both are held back until an answer is in,
+  // then shown as review material.
+  app.innerHTML =
+    '<div class="card">' +
+      '<div class="qnum">Q' + (QN+1) + ' / ' + Qs.length +
+        // In review the item is not from today. Saying which day it came from
+        // is how you notice that Day 04 keeps coming back and Day 09 never does.
+        (isRev && q.srcDay ? ' · from Day ' + String(q.srcDay).padStart(2,'0') : '') +
+        '<span id="qt"></span></div>' +
+      '<div class="qstem">' + (q.stem || q.q).replace(/______+/g, '<em>______</em>') + '</div>' +
+      '<div class="opts" id="opts"></div>' +
+      '<div id="why"></div>' +
+    '</div>';
+  const box = document.getElementById('opts');
+  (q.options || q.opts).forEach((o, i) => {
+    const b = document.createElement('button');
+    b.className = 'opt';
+    b.innerHTML = '<span class="k">' + KEYS[i] + '</span><span>' + (o === '' ? '<i style="color:var(--ink-soft)">(no word)</i>' : esc(o)) + '</span>';
+    b.onclick = () => pick(i);
+    box.appendChild(b);
+  });
+  armKeys(q.options || q.opts);
+  app.focus({preventScroll: true});   // so the keyboard works without a click first
+  if (PICKS[QN] !== undefined) return showAnswered(q, PICKS[QN]);
+  QT0 = Date.now();
+  setFoot(prevBtn() + '<span class="info kbd">↑↓ move · A-D or 1-4 pick · ⏎ confirm</span>');
+}
+
+/* ── keyboard ─────────────────────────────────────────────────────────────
+   80 drill items is a lot of mouse travel: point, click, scroll to Next,
+   click again. The whole run should be doable without leaving the home row. */
+let FOCUS = -1, ANSWERED = false, NEXT = null;
+
+function armKeys(opts) {
+  FOCUS = 0; ANSWERED = false; NEXT = null;
+  paintFocus();
+}
+function paintFocus() {
+  const box = document.getElementById('opts');
+  if (!box) return;
+  [...box.children].forEach((b, i) => b.classList.toggle('focus', !ANSWERED && i === FOCUS));
+}
+function moveFocus(d) {
+  const box = document.getElementById('opts');
+  if (!box || ANSWERED) return;
+  FOCUS = (FOCUS + d + box.children.length) % box.children.length;
+  paintFocus();
+}
+/* The primary action of whatever screen is showing — the green button in the
+   footer. Lets ⏎ drive every step, not just the quiz. */
+function primary() {
+  const b = footInner.querySelector('.btn:not(.ghost)');
+  if (b && !b.disabled) { b.click(); return true; }
+  return false;
+}
+
+document.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;   // typing
+  const box = document.getElementById('opts');
+  const inQuiz = !!box && box.children.length > 0;
+
+  // dictation: number keys place tiles, backspace takes the last one back,
+  // R replays the audio, ⏎ checks
+  const bank = document.getElementById('bank');
+  if (bank && DICT && !ANSWERED) {
+    if (e.key === 'Backspace') { e.preventDefault(); DSEL.pop(); return dictPaint(DICT); }
+    if (e.key.toLowerCase() === 'r') { e.preventDefault(); return dictPlay(DICT); }
+    const n = parseInt(e.key, 10);
+    if (n >= 1 && n <= bank.children.length) {
+      e.preventDefault();
+      if (DSEL.indexOf(n - 1) < 0) { DSEL.push(n - 1); dictPaint(DICT); }
+      return;
+    }
+    if (e.key === 'Enter' && DSEL.length) { e.preventDefault(); return dictCheck(DICT); }
+    return;
+  }
+
+  if (inQuiz && !ANSWERED) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { e.preventDefault(); return moveFocus(1); }
+    if (e.key === 'ArrowUp') { e.preventDefault(); return moveFocus(-1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); return goPrev(); }
+    const n = '1234'.indexOf(e.key);
+    const l = 'abcd'.indexOf(e.key.toLowerCase());
+    const i = n >= 0 ? n : l;
+    if (i >= 0 && i < box.children.length) { e.preventDefault(); return pick(i); }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); return pick(FOCUS); }
+    return;
+  }
+  if (e.key === 'ArrowLeft' && typeof goPrev === 'function' && document.getElementById('opts')) {
+    e.preventDefault(); return goPrev();
+  }
+  if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowRight') {
+    if (NEXT) { e.preventDefault(); const f = NEXT; NEXT = null; return f(); }
+    if (primary()) e.preventDefault();
+  }
+});
+function pick(i) {
+  if (PICKS[QN] !== undefined) return;          // already answered this sitting
+  const q = Qs[QN], ans = q.correct !== undefined ? q.correct : q.ans;
+  const ok = i === ans;
+  if (ok) QRight++;
+  PICKS[QN] = i; OKS[QN] = ok;
+  RTS[QN] = QT0 ? Date.now() - QT0 : 0;
+  // _kind is carried by items pulled from the mistake log, where one sitting can
+  // mix drill and sem questions — filing them all under the set's kind would
+  // credit sem answers to the drill accuracy on the home screen.
+  const kind = q._kind || (QK === 'trr' && q.type === 'vocab' ? 'vocab' : QK);
+  // In "all units" mode U is null, so recover the unit from the chunk id
+  // (01-10 → A, 11-20 → B, …) instead of filing every answer under 'T'.
+  const uid = (U && U.id) ||
+    (q.cid && D.units[Math.floor((+q.cid - 1) / 10)] || {}).id || 'T';
+  logAnswer(kind, ok, {unit: uid, cid: q.cid, qid: q.qid, rt: RTS[QN],
+                       srsKey: q.srsKey, srsKind: q.srsKind});
+  markResume();
+  showAnswered(q, i);
+  // Long explanations push the review below the fold; bring it into view so the
+  // answer is never something you have to go looking for.
+  const whyEl = document.querySelector('.why') || document.querySelector('.field');
+  if (whyEl) whyEl.scrollIntoView({block: 'nearest', behavior: 'smooth'});
+}
+
+/* Paint a question in its answered state. Shared by "just answered" and
+   "stepped back to" so a revisit looks identical but scores nothing twice. */
+function showAnswered(q, i) {
+  const ans = q.correct !== undefined ? q.correct : q.ans;
+  const ok = i === ans;
+  [...document.getElementById('opts').children].forEach((b, j) => {
+    b.disabled = true;
+    b.classList.remove('ok', 'no');
+    if (j === ans) b.classList.add('ok');
+    else if (j === i) b.classList.add('no');
+  });
+  const typeLabel = q.type ? q.type.replace('_',' ') : '';
+  if (typeLabel) {
+    document.getElementById('qt').innerHTML = '<span class="qtype">' + esc(typeLabel) + '</span>';
+  }
+  let w = '';
+  if (q.why || q.grammar) {
+    w = '<div class="why"><b>' + (ok ? 'Correct' : 'Why ' + KEYS[ans]) + '</b>' + esc(q.why || '') +
+        (q.grammar ? '<span class="gr">' + esc(q.grammar) + '</span>' : '') + '</div>';
+  }
+  if (q.field) {
+    w += '<div class="field" style="margin:14px 0 0">' + esc(q.field) + '</div>';
+  }
+  document.getElementById('why').innerHTML = w;
+  ANSWERED = true; paintFocus();
+  NEXT = () => { QN++; renderQ(); };
+  const done = PICKS.filter(x => x !== undefined).length;
+  const rt = RTS[QN] ? '<span class="rt' + (RTS[QN] > 20000 ? ' slow' : '') + '">' +
+             secs(RTS[QN]) + '</span>' : '';
+  setFoot(prevBtn() +
+          '<span class="info">' + QRight + ' / ' + done + rt +
+            '<span class="kbd"> · ⏎ next</span></span><div style="flex:1"></div>' +
+          (q.audio ? '<button class="snd" onclick="play(\'' + q.audio + '\')">🔊</button>' : '') +
+          '<button class="btn" onclick="NEXT=null;QN++;renderQ()">' +
+            (QN+1 >= Qs.length ? 'Finish →' : 'Next →') + '</button>');
+}
+
+/* ── dictation: hear the chunk, rebuild it from word tiles ─────────────────
+   Tiles rather than a text field — production recall that still works one-handed
+   on a phone, which typing the chunk did not. The sentence is withheld until the
+   answer is locked in: showing it alongside the audio is what turned the old
+   Listen quiz into reading with a soundtrack. */
+let DSEL = [], DPLAYS = 0, DGAVEUP = false;
+
+function renderDict() {
+  const d = Qs[QN];
+  setPhase('DICTATION','dict'); window.scrollTo(0,0);
+  DSEL = []; DPLAYS = 0; DGAVEUP = false;
+
+  app.innerHTML = '<div class="card">' +
+    '<div class="qnum">' + (QN+1) + ' / ' + Qs.length + '<span class="qtype">listen · build</span></div>' +
+    '<div class="playwrap">' +
+      '<button class="playbtn" id="pb">▶</button>' +
+      '<div class="playmeta" id="pm">tap to replay the chunk</div>' +
+    '</div>' +
+    '<div class="slots" id="slots"></div>' +
+    '<div class="bank" id="bank"></div>' +
+    '<div id="rev"></div>' +
+  '</div>' +
+  '<div style="text-align:center"><button class="giveup" id="gu">Can\'t catch it — show me the answer</button></div>';
+
+  document.getElementById('pb').onclick = () => dictPlay(d);
+  document.getElementById('gu').onclick = () => { DGAVEUP = true; dictCheck(d); };
+  d.tiles.forEach((w, i) => {
+    const b = document.createElement('button');
+    b.className = 'wt'; b.textContent = w; b.dataset.i = i;
+    b.innerHTML = '<span class="tk">' + (i + 1) + '</span>' + esc(w);
+    b.onclick = () => { DSEL.push(i); dictPaint(d); };
+    document.getElementById('bank').appendChild(b);
+  });
+  ANSWERED = false; NEXT = null; DICT = d;   // hand the keyboard this screen
+  QT0 = Date.now();
+  if (PICKS[QN] !== undefined) {            // revisit: restore the tiles, show the answer
+    DSEL = PICKS[QN].slice(); dictPaint(d); DICT = null; dictCheck(d); return;
+  }
+  dictPaint(d);
+  app.focus({preventScroll: true});
+  dictPlay(d);          // blind first pass starts immediately, no extra tap
+}
+let DICT = null;
+
+function dictPlay(d) {
+  DPLAYS++;
+  play(d.audio);
+  const pb = document.getElementById('pb'), pm = document.getElementById('pm');
+  if (!pb) return;
+  pb.classList.add('on');
+  setTimeout(() => pb.classList.remove('on'), 1400);
+  pm.textContent = DPLAYS === 1 ? 'first play' : DPLAYS + ' plays';
+}
+
+function dictPaint(d) {
+  const slots = document.getElementById('slots'), bank = document.getElementById('bank');
+  slots.className = 'slots' + (DSEL.length ? ' filled' : '');
+  slots.innerHTML = DSEL.length
+    ? DSEL.map((i, pos) => '<button class="wt placed" data-pos="' + pos + '">' + esc(d.tiles[i]) + '</button>').join('')
+    : '<span class="ph">tap the words to build the chunk — base form, as you learned it</span>';
+  slots.querySelectorAll('.wt').forEach(b => {
+    b.onclick = () => { DSEL.splice(+b.dataset.pos, 1); dictPaint(d); };
+  });
+  [...bank.children].forEach((b, i) => b.classList.toggle('spent', DSEL.indexOf(i) >= 0));
+  setFoot(prevBtn() + '<span class="info">' + QRight + ' / ' + QN +
+            '<span class="kbd"> · 1-9 place · ⌫ undo · R replay · ⏎ check</span></span>' +
+          '<div style="flex:1"></div>' +
+          '<button class="btn" id="sub"' + (DSEL.length ? '' : ' disabled') + '>Check →</button>');
+  const sub = document.getElementById('sub');
+  if (sub) sub.onclick = () => dictCheck(d);
+}
+
+function dictCheck(d) {
+  const norm = a => a.map(w => w.toLowerCase().replace(/[’]/g, "'")).join(' ');
+  const ok = !DGAVEUP && norm(DSEL.map(i => d.tiles[i])) === norm(d.answer);
+  // Score exactly once. Stepping back re-renders this same view, so the guard
+  // has to sit on the scoring, not on the whole function — the reveal still
+  // needs to be painted on a revisit.
+  if (PICKS[QN] === undefined) {
+    if (ok) QRight++;
+    PICKS[QN] = DSEL.slice(); OKS[QN] = ok;
+    RTS[QN] = QT0 ? Date.now() - QT0 : 0;
+    logAnswer('dict', ok, {unit: d.unit || (U ? U.id : '-'), cid: d.cid,
+                           plays: DPLAYS, gaveUp: DGAVEUP, rt: RTS[QN]});
+    markResume();
+  }
+
+  const slots = document.getElementById('slots');
+  if (DSEL.length) slots.classList.add(ok ? 'ok' : 'no');
+  slots.querySelectorAll('.wt').forEach(b => { b.onclick = null; b.disabled = true; });
+  document.getElementById('bank').innerHTML = '';
+  document.getElementById('gu').style.display = 'none';
+  document.getElementById('pm').textContent =
+    DPLAYS + (DPLAYS === 1 ? ' play' : ' plays') + (ok && DPLAYS === 1 ? ' · first try' : '');
+
+  document.getElementById('rev').innerHTML = '<div class="reveal">' +
+    (ok ? '' : '<div class="why" style="margin:0 0 12px"><b>Answer</b>' + esc(d.answer.join(' ')) +
+               ' — ' + esc(d.zh) + '</div>') +
+    '<div class="sent">' + d.sent +
+      (d.exAudio ? ' <button class="snd" style="vertical-align:middle" onclick="play(\'' +
+        d.exAudio + '\')">🔊</button>' : '') + '</div>' +
+    (d.exZh ? '<div class="zh">' + esc(d.exZh) + '</div>' : '') +
+    (d.grammar ? '<span class="gr">' + esc(d.grammar) + '</span>' : '') +
+  '</div>';
+
+  ANSWERED = true; DICT = null;
+  NEXT = () => { QN++; renderQ(); };
+  setFoot(prevBtn() + '<span class="info">' + QRight + ' / ' + (QN+1) +
+            (RTS[QN] ? '<span class="rt">' + secs(RTS[QN]) + '</span>' : '') +
+            '<span class="kbd"> · ⏎ next</span></span><div style="flex:1"></div>' +
+          '<button class="snd" onclick="play(\'' + d.chunkAudio + '\')">🔊</button>' +
+          '<button class="btn" onclick="NEXT=null;QN++;renderQ()">' +
+          (QN+1 >= Qs.length ? 'Finish →' : 'Next →') + '</button>');
+}
+
+/* ── dictation intro ─────────────────────────────────────── */
+function dictIntro() {
+  setPhase('DICTATION','dict'); setBar(.3); window.scrollTo(0,0);
+  app.innerHTML = '<h2 class="sec">Unit ' + U.id + ' · Chunk Dictation</h2>' +
+    '<div class="card"><p style="margin:0;font-size:14px;line-height:1.75">' +
+      'All <b>' + U.dictation.length + ' chunks</b> from this unit, one example sentence each. ' +
+      'It plays once on its own — rebuild the chunk from the tiles before you look at anything. ' +
+      'Replays are free but they are counted, because <b>heard-it-first-play</b> is the number ' +
+      'that tracks your decoding.</p></div>';
+  setFoot('<div style="flex:1"></div><button class="btn" onclick="runQuiz(U.dictation,\'dict\',afterDict,resumeAt(\'dict\',U.id))">Start →</button>');
+}
+function afterDict(right, total) {
+  S.units[U.id].dict = {right, total}; save(S);
+  const next = ENTRY === 'dict' ? () => typeScreen('dict') : unitDone;
+  summary('dict', next);
+}
+
+/* ── chunk drill ─────────────────────────────────────────── */
+function drillIntro() {
+  setPhase('CHUNK DRILL','drill'); setBar(.55); window.scrollTo(0,0);
+  app.innerHTML = '<h2 class="sec">Unit ' + U.id + ' · Chunk Drill</h2>' +
+    '<div class="card"><p style="margin:0 0 14px;font-size:14px;line-height:1.7">' +
+      'All <b>' + U.chunkList.length + ' chunks</b> from this unit, <b>' + U.drill.length + ' questions</b>. ' +
+      'Distractors are same-root or near-synonym forms — recognising the meaning will not be enough.</p>' +
+      '<div class="rows">' + U.chunkList.map(c =>
+        '<div class="r"><b>' + esc(c.chunk) + '</b><small>' + esc(c.zh) + '</small>' +
+        '<span class="n"><button class="snd" onclick="play(\'' + c.audio + '\')">🔊</button></span></div>').join('') +
+      '</div></div>';
+  setFoot('<div style="flex:1"></div><button class="btn" onclick="runQuiz(U.drill,\'drill\',afterDrill,resumeAt(\'drill\',U.id))">Start drill →</button>');
+}
+function afterDrill(right, total) {
+  S.units[U.id].drill = {right, total}; save(S);
+  const next = ENTRY === 'drill' ? () => typeScreen('drill') : dictIntro;
+  summary('drill', next);
+}
+
+/* ── semantic drill ──────────────────────────────────────── */
+function semIntro() {
+  setPhase('VOCABULARY','sem'); setBar(.78); window.scrollTo(0,0);
+  if (!U.fields.length) return readingScreen();
+  const items = [];
+  U.fields.forEach(f => f.qs.forEach(q => items.push({...q, field: f.title + '\n' +
+    f.members.map(m => '  · ' + m).join('\n')})));
+  // Field contents stay behind a fold: listing them here would hand over the
+  // answer set moments before the questions. Retrieval first, the map after —
+  // each field is revealed once its question has been answered.
+  app.innerHTML = '<h2 class="sec">Unit ' + U.id + ' · Vocabulary</h2>' +
+    '<div class="card"><p style="margin:0 0 14px;font-size:14px;line-height:1.7">' +
+      '<b>' + U.fields.length + ' fields · ' + items.length + ' questions.</b> ' +
+      'Every distractor comes from the same field, so all four options are correct English. ' +
+      'No Chinese appears — decide from the situation alone. Each field map is revealed ' +
+      'after you answer.</p>' +
+      '<details><summary style="cursor:pointer;font-size:13px;color:var(--ink-soft)">' +
+        'Preview the field maps first (easier, but you lose the retrieval effect)</summary>' +
+        U.fields.map(f => '<div class="field" style="margin-top:12px">' + esc(f.title) + '\n' +
+          f.members.map(m => '  · ' + m).join('\n') + '</div>').join('') +
+      '</details>' +
+    '</div>';
+  setFoot('<div style="flex:1"></div><button class="btn" onclick=\'runQuiz(' +
+          JSON.stringify(items).replace(/'/g,"&#39;") + ',"sem",afterSem,resumeAt("sem",U.id))\'>Start →</button>');
+}
+function afterSem(right, total) {
+  S.units[U.id].sem = {right, total}; save(S);
+  const next = ENTRY === 'sem' ? () => typeScreen('sem') : drillIntro;
+  summary('sem', next);
+}
+
+function unitDone() {
+  setPhase('UNIT DONE','home'); setBar(1); window.scrollTo(0,0);
+  const st = S.units[U.id];
+  // Done only when every step has actually been run — jumping straight into one
+  // drill must not mark the whole unit complete.
+  st.done = !!(st.read && st.dict && st.drill && st.sem); save(S);
+  const pc = o => o ? Math.round(100*o.right/o.total) + '%' : '—';
+  app.innerHTML = '<div class="card wpmcard"><b>' + (st.read ? st.read.wpm : '—') + '</b>' +
+      '<span>wpm on this text</span><div class="cmp">Unit ' + U.id + ' complete</div></div>' +
+    '<div class="rows">' +
+      '<div class="r">Vocabulary<span class="n">' + pc(st.sem) + '</span></div>' +
+      '<div class="r">Chunk drill<span class="n">' + pc(st.drill) + '</span></div>' +
+      (avgRT() ? '<div class="r">Average time per question<span class="n">' + secs(avgRT()) + '</span></div>' : '') +
+      '<div class="r">Reading <small>&nbsp;· ' + U.format + '</small><span class="n">' +
+        (st.read ? st.read.wpm + ' wpm' : '—') + '</span></div>' +
+      '<div class="r">Dictation<span class="n">' + pc(st.dict) + '</span></div>' +
+    '</div>' +
+    '<p style="font-size:13px;color:var(--ink-soft);margin-top:20px;line-height:1.7">' +
+      'These texts share their vocabulary with each other. The Transfer Test has lower overlap — ' +
+      'that is the number that tells you whether any of this is transferring.</p>';
+  setFoot('<button class="btn ghost" onclick="home()">Home</button><div style="flex:1"></div>' +
+          '<button class="btn" onclick="startTransfer()">Transfer Test →</button>');
+}
+
+/* ── story listening ───────────────────────────────────────
+   The reading pass and this share one question bank on purpose: answering the
+   same items by eye and by ear is the only way to see which of the two is
+   actually the bottleneck. The transcript is withheld until the answers are in,
+   because the old page showed text and audio together — which quietly turned
+   every listening question into a reading question. */
+function bossScreen() {
+  setPhase('STORY LISTENING','home'); setBar(0); setFoot(null);
+  exitBtn.style.display = ''; stopAudio(); window.scrollTo(0,0);
+
+  let h = '<button class="back" onclick="home()">← All practice</button>' +
+    '<div class="hero" style="padding-top:6px"><h1>🐲 Story Listening</h1>' +
+    '<p>Audio only — no transcript until you have answered. One or two plays, then commit, ' +
+    'the way Part 3 and Part 4 actually run.</p></div><div class="ulist">';
+  D.units.forEach((u, i) => {
+    const st = S.units[u.id] || {}, b = st.boss;
+    h += '<button class="' + (b ? 'ok' : '') + '" onclick="bossPlay(' + i + ')">' +
+      '<span class="u">STORY ' + u.id + '</span>' +
+      '<span class="t">' + u.icon + ' ' + esc(u.title) +
+        '<span class="fmt">' + u.format + '</span></span>' +
+      '<span class="q">' + u.boss.qs.length + ' Q' +
+        (b ? ' · ' + Math.round(100*b.right/b.total) + '%' : '') + '</span>' +
+      '<span class="go">→</span></button>';
+  });
+  h += '</div>';
+
+  // Reading and listening on the same items — the gap between the two columns
+  // is the number worth watching.
+  const rows = D.units.filter(u => (S.units[u.id]||{}).boss || (S.units[u.id]||{}).readq);
+  if (rows.length) {
+    const pc = o => o ? Math.round(100*o.right/o.total) + '%' : '—';
+    h += '<h2 class="sec">By ear vs. by eye</h2><div class="rows">' +
+      rows.map(u => '<div class="r">Story ' + u.id + '<small>&nbsp;· ' + esc(u.title) + '</small>' +
+        '<span class="n">' + pc((S.units[u.id]||{}).boss) + ' / ' +
+        pc((S.units[u.id]||{}).readq) + '</span></div>').join('') +
+      '</div><p style="font-size:12.5px;color:var(--ink-soft);margin-top:14px;line-height:1.7">' +
+      'Listening % / reading %. A wide gap means the words are known and the ear is the bottleneck — ' +
+      'that is a decoding problem, and Chunk Dictation is where it gets fixed.</p>';
+  }
+  app.innerHTML = h;
+}
+
+let BOSSI = 0, BPLAYS = 0;
+function bossPlay(i) {
+  BOSSI = i; U = D.units[i]; BPLAYS = 0;
+  S.units[U.id] = S.units[U.id] || {};
+  setPhase('STORY ' + U.id + ' · LISTEN','dict'); setBar(.4);
+  exitBtn.style.display = ''; window.scrollTo(0,0);
+
+  app.innerHTML = '<h2 class="sec">Story ' + U.id + ' · ' + U.format + '</h2>' +
+    '<div class="card">' +
+      '<div class="playwrap">' +
+        '<button class="playbtn" id="pb">▶</button>' +
+        '<div class="playmeta" id="pm">not played yet</div>' +
+      '</div>' +
+      '<p style="margin:0;font-size:13.5px;color:var(--ink-soft);line-height:1.75;text-align:center">' +
+        'The title is deliberately not shown. Listen, then answer from memory — ' +
+        'the transcript appears once the questions are done.</p>' +
+    '</div>';
+  document.getElementById('pb').onclick = () => bossListen();
+  setFoot('<button class="btn ghost" onclick="bossScreen()">Back</button><div style="flex:1"></div>' +
+          '<button class="btn" onclick="bossAsk()">Questions →</button>');
+}
+function bossListen() {
+  BPLAYS++;
+  const pb = document.getElementById('pb'), pm = document.getElementById('pm');
+  pb.classList.add('on');
+  pm.textContent = 'playing… (' + BPLAYS + (BPLAYS === 1 ? ' play)' : ' plays)');
+  playSeq(U.boss.audio, () => {
+    if (!pb.isConnected) return;
+    pb.classList.remove('on');
+    pm.textContent = BPLAYS + (BPLAYS === 1 ? ' play' : ' plays');
+  });
+}
+function bossAsk() {
+  stopAudio();
+  runQuiz(U.boss.qs, 'boss', (right, total) => {
+    S.units[U.id].boss = {right, total, plays: BPLAYS}; save(S);
+    bossDone(right, total);
+  });
+}
+function bossDone(right, total) {
+  setPhase('STORY ' + U.id + ' DONE','home'); setBar(1); window.scrollTo(0,0);
+  const pc = Math.round(100*right/total);
+  const rq = S.units[U.id].readq;
+  app.innerHTML = '<div class="card wpmcard"><b>' + pc + '%</b><span>by ear</span>' +
+      '<div class="cmp">' + right + ' / ' + total + ' correct · ' + BPLAYS +
+      (BPLAYS === 1 ? ' play' : ' plays') +
+      (rq ? '<br>same story by eye: ' + Math.round(100*rq.right/rq.total) + '%' : '') + '</div></div>' +
+    '<h2 class="sec">Transcript · ' + esc(U.title) + '</h2>' +
+    '<div class="card"><div style="font-size:12.5px;color:var(--ink-soft);margin-bottom:12px">' +
+      'Green = a chunk you have learned. Tap it to hear it again — the ones you missed by ear are ' +
+      'the ones to look at.</div>' +
+    passageHTML(U.cued, 'chunk') + '</div>';
+  app.querySelectorAll('.ck').forEach(el => {
+    el.onclick = () => {
+      const t = el.textContent.trim().toLowerCase();
+      const c = U.chunkList.find(c => c.chunk.toLowerCase() === t) ||
+                U.chunkList.find(c => t.indexOf(c.chunk.toLowerCase()) >= 0);
+      if (c) play(c.audio);
+    };
+  });
+  setFoot('<button class="btn ghost" onclick="bossScreen()">Stories</button><div style="flex:1"></div>' +
+          (BOSSI < D.units.length - 1
+            ? '<button class="btn" onclick="bossPlay(' + (BOSSI+1) + ')">Next story →</button>'
+            : '<button class="btn" onclick="home()">Home</button>'));
+}
+
+/* ── transfer test ───────────────────────────────────────── */
+function startTransfer() {
+  U = null; exitBtn.style.display = '';
+  setPhase('TRANSFER · TIMED','read'); setBar(.5); window.scrollTo(0,0);
+  const T = D.transfer, goalMs = T.words / GOAL_TRANSFER * 60000;
+  app.innerHTML = '<h2 class="sec">Transfer Test · one pass, no re-reading</h2>' +
+    '<div class="timer"><span class="t" id="tt">0:00</span><div class="track"><i id="tk"></i></div>' +
+      '<span class="goal">goal ' + GOAL_TRANSFER + ' wpm · ' + fmt(goalMs) + '</span></div>' +
+    '<div class="card"><div class="passage plain" style="font-size:16px;line-height:1.9">' +
+      T.paras.map(p => '<p>' + p + '</p>').join('') + '</div></div>';
+  setFoot('<span class="info">' + T.words + ' words</span><div style="flex:1"></div>' +
+          '<button class="btn" onclick="stopTransfer()">Done reading →</button>');
+  t0 = Date.now();
+  const tt = document.getElementById('tt'), tk = document.getElementById('tk');
+  timer = setInterval(() => {
+    const el = Date.now() - t0; tt.textContent = fmt(el);
+    const r = el / goalMs; tk.style.width = Math.min(100, r*100) + '%';
+    if (r > 1) { tk.classList.add('over'); tt.classList.add('over'); }
+  }, 200);
+}
+function stopTransfer() {
+  clearInterval(timer); timer = null;
+  const T = D.transfer, ms = Date.now() - t0, w = wpmOf(T.words, ms);
+  if (!tooFast(ms)) { S.transfer = {wpm: w, ms}; save(S); }
+  window.scrollTo(0,0);
+  app.innerHTML = '<div class="card wpmcard"><b>' + w + '</b><span>transfer wpm</span>' +
+    '<div class="cmp">' + fmt(ms) + ' · this text was new to you</div></div>';
+  setFoot('<div style="flex:1"></div><button class="btn" onclick=\'runQuiz(' +
+    JSON.stringify(T.qs).replace(/'/g,'&#39;') + ',"transfer",afterTransfer)\'>Questions →</button>');
+}
+function afterTransfer(right, total) {
+  const pc = Math.round(100*right/total);
+  S.transfer.comp = pc; S.transfer.right = right; S.transfer.total = total;
+  save(S);
+  setPhase('RESULT','home'); setBar(1); window.scrollTo(0,0);
+  const valid = pc >= 70;
+  app.innerHTML = '<div class="card wpmcard"><b>' + S.transfer.wpm + '</b><span>transfer wpm</span>' +
+      '<div class="cmp">' + right + ' / ' + total + ' correct · ' + pc + '%</div></div>' +
+    '<div class="rows">' +
+      '<div class="r">Comprehension gate <small>&nbsp;· ≥70% required</small><span class="n' +
+        (valid ? '' : ' bad') + '">' + pc + '%</span></div>' +
+      '<div class="r">Counts toward your baseline<span class="n' + (valid ? '' : ' bad') + '">' +
+        (valid ? 'Yes' : 'No') + '</span></div>' +
+    '</div>' +
+    '<p style="font-size:13px;color:var(--ink-soft);margin-top:20px;line-height:1.75">' +
+      (valid
+        ? 'This is your baseline. From tomorrow the target becomes <b>' +
+          Math.round(S.transfer.wpm*1.1) + ' wpm</b> — your baseline +10%.'
+        : 'Speed without comprehension does not count. Slow down on the next run until you clear 70%, then push the pace again.') +
+    '</p>';
+  setFoot('<button class="btn ghost" onclick="home()">Home</button>');
+}
+
+boot();
+</script>
+</body>
+</html>

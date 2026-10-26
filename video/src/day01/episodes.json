@@ -1,0 +1,244 @@
+[
+ {
+  "id": "ep01",
+  "titleEn": "EP1 · Monday Plans",
+  "titleZh": "星期一的計畫",
+  "leftName": "TOM",
+  "rightName": "MIA",
+  "turns": [
+   {
+    "speaker": "L",
+    "voice": "en-US-GuyNeural",
+    "text": "Mia, can we schedule a meeting for Tuesday morning? I put a slot in the calendar.",
+    "audio": "day01/ep01_00.mp3",
+    "spots": [
+     {
+      "phrase": "schedule a meeting",
+      "realized": "schedule a meeting",
+      "zh": "安排會議",
+      "icon": "📌",
+      "tier": "chunk",
+      "exampleZh": "我們把會議安排在星期二早上吧。"
+     }
+    ],
+    "highlights": [
+     "calendar"
+    ],
+    "durationSec": 6.24
+   },
+   {
+    "speaker": "R",
+    "voice": "en-GB-SoniaNeural",
+    "text": "Sure. Is it about the report? We still have to meet the deadline on Friday.",
+    "audio": "day01/ep01_01.mp3",
+    "spots": [
+     {
+      "phrase": "meet the deadline",
+      "realized": "meet the deadline",
+      "zh": "趕上截止期限",
+      "icon": "📌",
+      "tier": "chunk",
+      "exampleZh": "我們加班以趕上截止期限。"
+     }
+    ],
+    "highlights": [],
+    "durationSec": 5.808
+   },
+   {
+    "speaker": "L",
+    "voice": "en-US-GuyNeural",
+    "text": "Yes. I want to submit a report that finance can approve the budget from.",
+    "audio": "day01/ep01_02.mp3",
+    "spots": [
+     {
+      "phrase": "submit a report",
+      "realized": "submit a report",
+      "zh": "提交報告",
+      "icon": "📌",
+      "tier": "chunk",
+      "exampleZh": "請在月底前提交報告。"
+     },
+     {
+      "phrase": "approve the budget",
+      "realized": "approve the budget",
+      "zh": "批准預算",
+      "icon": "✅",
+      "tier": "chunk",
+      "exampleZh": "經理昨天批准了預算。"
+     }
+    ],
+    "highlights": [],
+    "durationSec": 5.592
+   },
+   {
+    "speaker": "R",
+    "voice": "en-GB-SoniaNeural",
+    "text": "Then we must stay within the budget. Check the agenda in my attachment.",
+    "audio": "day01/ep01_03.mp3",
+    "spots": [
+     {
+      "phrase": "stay within the budget",
+      "realized": "stay within the budget",
+      "zh": "控制在預算內",
+      "icon": "📌",
+      "tier": "chunk",
+      "exampleZh": "這一季我們必須控制在預算內。"
+     },
+     {
+      "phrase": "agenda",
+      "realized": "agenda",
+      "zh": "議程",
+      "icon": "🏁",
+      "tier": "score_800"
+     },
+     {
+      "phrase": "attachment",
+      "realized": "attachment",
+      "zh": "附件",
+      "icon": "📌",
+      "tier": "score_800"
+     }
+    ],
+    "highlights": [],
+    "durationSec": 5.184
+   },
+   {
+    "speaker": "L",
+    "voice": "en-US-GuyNeural",
+    "text": "Got it. If I get stuck with the numbers, I will ask a colleague in the office.",
+    "audio": "day01/ep01_04.mp3",
+    "spots": [
+     {
+      "phrase": "ask a colleague",
+      "realized": "ask a colleague",
+      "zh": "請教同事",
+      "icon": "📌",
+      "tier": "chunk",
+      "exampleZh": "如果卡住了，就請同事幫忙。"
+     }
+    ],
+    "highlights": [
+     "office"
+    ],
+    "durationSec": 5.76
+   }
+  ],
+  "location": "OPEN OFFICE",
+  "time": "09:05",
+  "statusFrom": "NO PLAN",
+  "statusTo": "A PLAN",
+  "leftIcon": "📅",
+  "rightIcon": "📊"
+ },
+ {
+  "id": "ep02",
+  "titleEn": "EP2 · The Package",
+  "titleZh": "包裹",
+  "leftName": "TOM",
+  "rightName": "MIA",
+  "turns": [
+   {
+    "speaker": "R",
+    "voice": "en-GB-SoniaNeural",
+    "text": "Are you available this afternoon? I have to meet a client at three.",
+    "audio": "day01/ep02_00.mp3",
+    "spots": [
+     {
+      "phrase": "be available this afternoon",
+      "realized": "available this afternoon",
+      "zh": "今天下午有空",
+      "icon": "📌",
+      "tier": "chunk",
+      "exampleZh": "你今天下午有空講個簡短的電話嗎？"
+     },
+     {
+      "phrase": "meet a client",
+      "realized": "meet a client",
+      "zh": "跟客戶見面",
+      "icon": "📌",
+      "tier": "chunk",
+      "exampleZh": "我三點要跟客戶見面。"
+     }
+    ],
+    "highlights": [],
+    "durationSec": 4.728
+   },
+   {
+    "speaker": "L",
+    "voice": "en-US-GuyNeural",
+    "text": "I am free. The courier will deliver a package with your samples before then.",
+    "audio": "day01/ep02_01.mp3",
+    "spots": [
+     {
+      "phrase": "deliver a package",
+      "realized": "deliver a package",
+      "zh": "遞送包裹",
+      "icon": "📌",
+      "tier": "chunk",
+      "exampleZh": "快遞員會把包裹送到櫃台。"
+     }
+    ],
+    "highlights": [],
+    "durationSec": 5.928
+   },
+   {
+    "speaker": "R",
+    "voice": "en-GB-SoniaNeural",
+    "text": "Great. Could you review a draft of my slides while I wait?",
+    "audio": "day01/ep02_02.mp3",
+    "spots": [
+     {
+      "phrase": "review a draft",
+      "realized": "review a draft",
+      "zh": "審閱草稿",
+      "icon": "📌",
+      "tier": "chunk",
+      "exampleZh": "你可以在午餐前幫我看一下草稿嗎？"
+     }
+    ],
+    "highlights": [],
+    "durationSec": 4.296
+   },
+   {
+    "speaker": "L",
+    "voice": "en-US-GuyNeural",
+    "text": "Happy to. Keep the taxi receipt and finance will reimburse you.",
+    "audio": "day01/ep02_03.mp3",
+    "spots": [
+     {
+      "phrase": "reimburse",
+      "realized": "reimburse",
+      "zh": "核銷，償還（費用）",
+      "icon": "📌",
+      "tier": "score_800"
+     }
+    ],
+    "highlights": [],
+    "durationSec": 5.376
+   },
+   {
+    "speaker": "R",
+    "voice": "en-GB-SoniaNeural",
+    "text": "I always itemize my expenses, so that part is easy.",
+    "audio": "day01/ep02_04.mp3",
+    "spots": [
+     {
+      "phrase": "itemize",
+      "realized": "itemize",
+      "zh": "逐項列出",
+      "icon": "📌",
+      "tier": "score_900"
+     }
+    ],
+    "highlights": [],
+    "durationSec": 4.104
+   }
+  ],
+  "location": "FRONT DESK",
+  "time": "13:40",
+  "statusFrom": "WAITING",
+  "statusTo": "READY",
+  "leftIcon": "📦",
+  "rightIcon": "🤝"
+ }
+]

@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Day {{ '%02d' % day }} Extra Vocab · {{ theme_en }}</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --card: #fff; --ink: #1a1a1a; --ink-soft: #6b6b6b;
+    --accent: #2a7a4f; --accent-soft: #e5f0ea; --accent-strong: #1e5e3d;
+    --wrong: #c0392b; --wrong-soft: #fdeae7;
+    --hesitant: #d4a017; --hesitant-soft: #fef8e0;
+    --basic: #4a6fa5; --basic-soft: #e6ecf5;
+    --s800: #b8860b; --s800-soft: #fef4d6;
+    --s900: #a34a2a; --s900-soft: #f5ebe5;
+    --border: #e4e0d8; --shadow: 0 1px 2px rgba(0,0,0,0.03), 0 4px 12px rgba(0,0,0,0.04);
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, "PingFang TC", "Noto Sans TC", sans-serif;
+    background: var(--bg); color: var(--ink); margin: 0; line-height: 1.5;
+    display: flex; flex-direction: column;
+  }
+
+  /* Top sticky header */
+  .top {
+    background: white; border-bottom: 1px solid var(--border);
+    padding: 12px 20px; position: sticky; top: 0; z-index: 10;
+  }
+  .top-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .top .title { font-weight: 700; font-size: 15px; color: var(--accent); }
+  .top .title small { color: var(--ink-soft); font-weight: 400; margin-left: 4px; font-size: 12px; }
+  .top a.back {
+    color: var(--ink-soft); font-size: 12px; text-decoration: none;
+    padding: 4px 10px; border-radius: 5px; border: 1px solid var(--border);
+  }
+  .top a.back:hover { background: var(--bg); }
+  .top .grow { flex-grow: 1; }
+
+  .mode-toggle { display: flex; gap: 2px; background: var(--bg); border-radius: 8px; padding: 3px; }
+  .mode-toggle button {
+    padding: 6px 14px; background: transparent; border: none; border-radius: 6px;
+    font-size: 13px; cursor: pointer; font-family: inherit; color: var(--ink-soft);
+  }
+  .mode-toggle button.active { background: white; color: var(--accent); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+
+  .tier-filter { display: flex; gap: 4px; }
+  .tier-filter button {
+    padding: 5px 10px; background: white; border: 1px solid var(--border);
+    border-radius: 5px; cursor: pointer; font-size: 12px; font-family: inherit;
+    color: var(--ink-soft);
+  }
+  .tier-filter button:hover { border-color: var(--ink); color: var(--ink); }
+  .tier-filter button.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+  /* familiarity filter — an independent axis, combines with the tier filter */
+  .level-filter button .lc {
+    display: inline-block; margin-left: 5px; padding: 0 5px;
+    border-radius: 8px; background: var(--border); color: var(--ink-soft);
+    font-size: 11px; font-variant-numeric: tabular-nums;
+  }
+  .level-filter button.active .lc { background: rgba(255,255,255,0.25); color: white; }
+  .level-filter button[data-level="wrong"].active { background: var(--wrong); border-color: var(--wrong); }
+  .level-filter button[data-level="hesitant"].active { background: #b8860b; border-color: #b8860b; }
+  .level-filter button[data-level="known"].active { background: var(--accent); border-color: var(--accent); }
+  .filter-label { font-size: 12px; color: var(--ink-soft); min-width: 34px; }
+
+  .progress-row { display: flex; align-items: center; gap: 12px; margin-top: 10px; font-size: 12px; color: var(--ink-soft); }
+  .progress-bar {
+    flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+    transition: width 0.3s;
+  }
+  .progress-row b { color: var(--ink); font-family: var(--mono); }
+
+  .nav-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  .nav-row .nav-btn {
+    padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px;
+    background: white; cursor: pointer; font-size: 12px; font-family: inherit;
+    color: var(--ink-soft); white-space: nowrap;
+  }
+  .nav-row .nav-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .nav-row .nav-btn:disabled { opacity: 0.35; cursor: default; }
+  .nav-row input[type="range"] { flex: 1; accent-color: var(--accent); }
+  body.mode-lookup .nav-row { display: none; }
+
+  /* Main stage */
+  .stage {
+    flex-grow: 1; display: flex; align-items: center; justify-content: center;
+    padding: 32px 20px 40px; overflow-y: auto;
+  }
+
+  /* Mode switching */
+  body.mode-study .lookup-section,
+  body.mode-study .speak-section,
+  body.mode-speak .lookup-section,
+  body.mode-speak .study-section,
+  body.mode-lookup .study-section,
+  body.mode-lookup .speak-section { display: none; }
+
+  .study-card {
+    background: white; padding: 40px 32px; border-radius: 14px;
+    box-shadow: var(--shadow); max-width: 520px; width: 100%; text-align: center;
+    border: 1px solid var(--border); animation: fadeIn 0.2s;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .study-card .tier-badge {
+    display: inline-block; padding: 3px 10px; border-radius: 12px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 16px;
+  }
+  .study-card .tier-badge.basic { background: var(--basic-soft); color: var(--basic); }
+  .study-card .tier-badge.s800 { background: var(--s800-soft); color: var(--s800); }
+  .study-card .tier-badge.s900 { background: var(--s900-soft); color: var(--s900); }
+  .study-card .word {
+    font-size: 36px; font-weight: 700; color: var(--accent-strong);
+    margin: 12px 0; letter-spacing: 0.3px; line-height: 1.2;
+  }
+  .study-card .pos { color: var(--ink-soft); font-size: 13px; font-family: var(--mono); margin-bottom: 20px; }
+  .study-card .audio-btns { display: flex; justify-content: center; gap: 10px; margin: 20px 0; }
+  .study-card .audio-btns button {
+    padding: 8px 16px; border: 1px solid var(--border); border-radius: 20px;
+    background: white; cursor: pointer; font-size: 13px; font-family: inherit;
+  }
+  .study-card .audio-btns button:hover { border-color: var(--accent); }
+  .study-card .audio-btns button.playing { background: var(--accent); color: white; border-color: var(--accent); }
+  .study-card .meaning {
+    background: var(--accent-soft); padding: 20px; border-radius: 10px;
+    margin: 20px 0; font-size: 22px; font-weight: 600; color: var(--accent-strong);
+    animation: fadeIn 0.2s;
+  }
+  .study-card .reveal-btn {
+    padding: 12px 28px; background: var(--accent); color: white; border: none;
+    border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;
+    font-family: inherit; margin: 20px 0;
+  }
+  .study-card .reveal-btn:hover { background: var(--accent-strong); }
+
+  /* Word diagram — optional, only rendered when a supplementary item has `diagram:` in YAML.
+     Shares the card's own tokens; no new colors. Appears right under .meaning, same reveal moment. */
+  .word-diagram {
+    margin: 4px 0 20px; padding: 14px 12px; border: 1px solid var(--border);
+    border-radius: 10px; background: var(--bg); animation: fadeIn 0.2s;
+  }
+  .word-diagram .wd-header {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; color: var(--ink-soft);
+    text-transform: uppercase; margin-bottom: 10px; text-align: center;
+  }
+  /* flow */
+  .word-diagram .wd-flow { display: flex; flex-direction: column; align-items: center; }
+  .word-diagram .wd-node { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 3px 0; }
+  .word-diagram .wd-node .wd-icon { font-size: 15px; line-height: 1; margin-bottom: 1px; }
+  .word-diagram .wd-node .wd-label { font-size: 12.5px; font-weight: 600; color: var(--ink-soft); }
+  .word-diagram .wd-node .wd-note { font-size: 10px; color: var(--ink-soft); opacity: 0.8; }
+  .word-diagram .wd-node.wd-emphasis {
+    background: var(--accent-soft); border: 1.5px solid var(--accent); border-radius: 8px;
+    padding: 6px 16px; margin: 1px 0;
+  }
+  .word-diagram .wd-node.wd-emphasis .wd-label { color: var(--accent-strong); font-size: 14px; font-weight: 800; }
+  .word-diagram .wd-node.wd-emphasis .wd-note { color: var(--accent); font-weight: 600; }
+  .word-diagram .wd-arrow { color: var(--ink-soft); font-size: 12px; line-height: 1.1; opacity: 0.6; }
+  /* ladder */
+  .word-diagram .wd-ladder { display: flex; flex-direction: column; gap: 5px; }
+  .word-diagram .wd-rung { display: flex; align-items: center; gap: 8px; }
+  .word-diagram .wd-rung .wd-bar {
+    height: 26px; border-radius: 6px; background: var(--border); display: flex; align-items: center;
+    padding: 0 10px; font-size: 11.5px; font-weight: 600; color: var(--ink-soft);
+  }
+  .word-diagram .wd-rung.wd-r0 .wd-bar { width: 100%; }
+  .word-diagram .wd-rung.wd-r1 .wd-bar { width: 80%; }
+  .word-diagram .wd-rung.wd-r2 .wd-bar { width: 60%; }
+  .word-diagram .wd-rung.wd-r3 .wd-bar { width: 42%; opacity: 0.65; }
+  .word-diagram .wd-rung.wd-emphasis .wd-bar { background: var(--accent); color: white; font-weight: 800; font-size: 12.5px; }
+  /* category */
+  .word-diagram .wd-category { display: flex; flex-direction: column; gap: 6px; }
+  .word-diagram .wd-group {
+    border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px;
+    display: flex; align-items: center; gap: 8px; background: white; text-align: left;
+  }
+  .word-diagram .wd-group .wd-gicon { font-size: 14px; flex-shrink: 0; }
+  .word-diagram .wd-group .wd-gword { font-size: 12.5px; font-weight: 800; color: var(--ink); }
+  .word-diagram .wd-group .wd-gnote { font-size: 10px; color: var(--ink-soft); }
+  .word-diagram .wd-group.wd-emphasis { border-color: var(--accent); background: var(--accent-soft); }
+  .word-diagram .wd-group.wd-emphasis .wd-gword { color: var(--accent-strong); }
+  /* contrast — confusable pairs (looks alike, means differently) */
+  .word-diagram .wd-contrast { display: flex; align-items: stretch; gap: 6px; }
+  .word-diagram .wd-vs-side { flex: 1; text-align: center; padding: 8px 6px; border-radius: 8px; min-width: 0; }
+  .word-diagram .wd-vs-side.wd-emphasis { background: var(--accent-soft); border: 1.5px solid var(--accent); }
+  .word-diagram .wd-vs-side.wd-vs-muted { background: white; border: 1px dashed var(--border); opacity: 0.8; }
+  .word-diagram .wd-vs-word { font-size: 13px; font-weight: 800; word-break: break-word; }
+  .word-diagram .wd-vs-side.wd-emphasis .wd-vs-word { color: var(--accent-strong); }
+  .word-diagram .wd-vs-side.wd-vs-muted .wd-vs-word {
+    color: var(--ink-soft); text-decoration: line-through; text-decoration-color: var(--wrong); text-decoration-thickness: 1.5px;
+  }
+  .word-diagram .wd-vs-note { font-size: 9.5px; color: var(--ink-soft); margin-top: 3px; line-height: 1.3; }
+  .word-diagram .wd-vs-divider { font-size: 15px; font-weight: 800; color: var(--wrong); flex-shrink: 0; align-self: center; }
+  /* ascii — plain monospace concept art (space > text, per the "one glance, one scene" design) */
+  .word-diagram .wd-ascii {
+    margin: 0; padding: 2px 4px; font-family: var(--mono); font-size: 12.5px; line-height: 1.5;
+    white-space: pre; overflow-x: auto; color: var(--ink-soft); text-align: left;
+  }
+  .word-diagram .wd-ascii-caption {
+    margin-top: 10px; text-align: center; font-size: 12px; font-weight: 600; color: var(--accent-strong);
+  }
+
+  .verdict-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+  .verdict-btns button {
+    padding: 14px 8px; border: 2px solid transparent; border-radius: 10px;
+    cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 700;
+    transition: all 0.1s;
+  }
+  .verdict-btns button:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+  .verdict-btns .btn-wrong { background: var(--wrong-soft); color: var(--wrong); }
+  .verdict-btns .btn-wrong:hover { border-color: var(--wrong); }
+  .verdict-btns .btn-hesitant { background: var(--hesitant-soft); color: var(--hesitant); }
+  .verdict-btns .btn-hesitant:hover { border-color: var(--hesitant); }
+  .verdict-btns .btn-known { background: var(--accent-soft); color: var(--accent-strong); }
+  .verdict-btns .btn-known:hover { border-color: var(--accent); }
+  .verdict-btns button .num {
+    display: block; font-size: 10px; opacity: 0.6; font-family: var(--mono); margin-top: 2px;
+  }
+
+  .kbd-hint {
+    text-align: center; color: var(--ink-soft); font-size: 12px; margin-top: 16px;
+    font-family: var(--mono);
+  }
+  .kbd-hint kbd {
+    padding: 2px 6px; background: white; border: 1px solid var(--border);
+    border-radius: 3px; font-family: var(--mono); font-size: 11px; margin: 0 2px;
+  }
+
+  .study-empty { text-align: center; padding: 60px 20px; color: var(--ink-soft); }
+  .study-empty .icon { font-size: 48px; margin-bottom: 12px; }
+  .study-empty h2 { color: var(--accent); margin: 0 0 8px; }
+
+  /* Speak mode — retrieval-first */
+  .speak-card {
+    background: white; padding: 40px 32px; border-radius: 14px;
+    box-shadow: var(--shadow); max-width: 520px; width: 100%; text-align: center;
+    border: 1px solid var(--border); animation: fadeIn 0.2s;
+  }
+  .speak-card .tier-badge {
+    display: inline-block; padding: 3px 10px; border-radius: 12px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 20px;
+  }
+  .speak-card .tier-badge.basic { background: var(--basic-soft); color: var(--basic); }
+  .speak-card .tier-badge.s800 { background: var(--s800-soft); color: var(--s800); }
+  .speak-card .tier-badge.s900 { background: var(--s900-soft); color: var(--s900); }
+  .speak-card .cue-zh {
+    font-size: 32px; font-weight: 700; color: var(--ink);
+    margin: 24px 0 8px; letter-spacing: 0.3px;
+  }
+  .speak-card .cue-pos { color: var(--ink-soft); font-size: 13px; font-family: var(--mono); margin-bottom: 32px; }
+  .speak-card .cue-prompt {
+    padding: 16px 20px; background: #fef8e0; border-radius: 10px;
+    color: var(--hesitant); font-size: 14px; font-weight: 600;
+    margin: 20px 0;
+  }
+  .speak-card .cue-prompt .big { font-size: 18px; display: block; margin-bottom: 4px; }
+  .speak-card .said-btn {
+    padding: 14px 32px; background: var(--accent); color: white; border: none;
+    border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer;
+    font-family: inherit; margin-top: 16px;
+  }
+  .speak-card .said-btn:hover { background: var(--accent-strong); }
+  .speak-card .said-btn:disabled { background: var(--ink-soft); opacity: 0.5; }
+
+  /* Reveal phase */
+  .speak-card .reveal-en {
+    font-size: 34px; font-weight: 700; color: var(--accent-strong);
+    margin: 20px 0 6px; letter-spacing: 0.3px; animation: fadeIn 0.2s;
+  }
+  .speak-card .reveal-zh {
+    color: var(--ink-soft); font-size: 16px; margin-bottom: 20px;
+  }
+  .speak-card .reveal-audio { display: flex; justify-content: center; gap: 10px; margin: 16px 0; }
+  .speak-card .reveal-audio button {
+    padding: 8px 16px; border: 1px solid var(--border); border-radius: 20px;
+    background: white; cursor: pointer; font-size: 13px; font-family: inherit;
+  }
+  .speak-card .reveal-audio button:hover { border-color: var(--accent); }
+  .speak-card .reveal-audio button.playing { background: var(--accent); color: white; border-color: var(--accent); }
+  .speak-card .self-check-label {
+    color: var(--ink-soft); font-size: 12px; margin: 16px 0 8px;
+  }
+
+  /* Lookup mode */
+  .lookup-section { width: 100%; max-width: 960px; }
+  .toolbar {
+    background: var(--card); padding: 12px 14px; border-radius: 10px;
+    display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+    border: 1px solid var(--border); margin-bottom: 12px;
+  }
+  .toolbar input {
+    flex: 1; min-width: 200px; padding: 8px 12px; border: 1px solid var(--border);
+    border-radius: 6px; font-size: 14px; font-family: inherit;
+  }
+  .toolbar input:focus { outline: none; border-color: var(--accent); }
+  .counter { color: var(--ink-soft); font-size: 12px; font-family: var(--mono); }
+  .lookup-hint { color: var(--ink-soft); font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; background: var(--card);
+    border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); font-size: 14px; }
+  th { background: var(--accent-soft); color: var(--accent-strong); font-weight: 700; font-size: 12px;
+    text-transform: uppercase; letter-spacing: 0.5px; }
+  tr:last-child td { border: none; }
+  tr { cursor: pointer; }
+  tr:hover { background: var(--accent-soft); }
+  tr.known-row td { opacity: 0.4; }
+  tr.hidden { display: none; }
+  td.en { font-weight: 600; font-family: var(--mono); }
+  td.pos { color: var(--ink-soft); font-size: 12px; font-family: var(--mono); }
+  td.tier { text-align: center; }
+  td.audio { text-align: center; width: 90px; padding: 8px; }
+  td.audio button {
+    padding: 4px 10px; border: 1px solid var(--border); border-radius: 14px;
+    background: white; cursor: pointer; font-size: 12px; font-family: inherit; margin: 0 2px;
+  }
+  td.audio button:hover { border-color: var(--accent); background: var(--accent-soft); }
+  td.audio button.playing { background: var(--accent); color: white; border-color: var(--accent); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+  .badge.basic { background: var(--basic-soft); color: var(--basic); }
+  .badge.s800 { background: var(--s800-soft); color: var(--s800); }
+  .badge.s900 { background: var(--s900-soft); color: var(--s900); }
+
+  /* Modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100;
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: white; padding: 28px; border-radius: 14px; max-width: 460px; width: 100%;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  }
+  .modal h2 { margin: 0 0 6px; font-size: 22px; color: var(--accent); }
+  .modal .sub { color: var(--ink-soft); font-size: 13px; margin-bottom: 20px; }
+  .modal .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+  .modal .stat {
+    padding: 14px; border-radius: 8px; text-align: center;
+  }
+  .modal .stat .n { font-size: 26px; font-weight: 700; font-family: var(--mono); }
+  .modal .stat .l { font-size: 11px; margin-top: 2px; }
+  .modal .stat.known { background: var(--accent-soft); color: var(--accent-strong); }
+  .modal .stat.hesitant { background: var(--hesitant-soft); color: var(--hesitant); }
+  .modal .stat.wrong { background: var(--wrong-soft); color: var(--wrong); }
+  .modal .stat.total { background: var(--bg); color: var(--ink); }
+  .modal .actions { display: flex; flex-direction: column; gap: 8px; }
+  .modal .actions button, .modal .actions a {
+    padding: 12px; border: 1px solid var(--border); border-radius: 8px;
+    background: white; cursor: pointer; font-family: inherit; font-size: 14px;
+    text-decoration: none; color: var(--ink); text-align: center;
+  }
+  .modal .actions .primary { background: var(--accent); color: white; border-color: var(--accent); }
+
+  audio { display: none; }
+</style>
+</head>
+<body class="mode-study">
+
+<div class="top">
+  <div class="top-row">
+    <a href="index.html" class="back">← Day {{ '%02d' % day }} Home</a>
+    <span class="title">📚 Extra Vocab <small>{{ theme_en }}</small></span>
+    <span class="grow"></span>
+    <div class="mode-toggle">
+      <button class="active" data-mode="study">🎯 Recognition (EN→ZH)</button>
+      <button data-mode="speak">🎤 Speak (ZH→EN)</button>
+      <button data-mode="lookup">📋 Lookup</button>
+    </div>
+  </div>
+  <div class="top-row" style="margin-top: 10px;">
+    <span class="filter-label">Tier</span>
+    <div class="tier-filter">
+      <button class="active" data-tier="all">All ({{ items|length }})</button>
+      <button data-tier="basic">Basic ({{ counts.basic }})</button>
+      <button data-tier="s800">800 ({{ counts.s800 }})</button>
+      <button data-tier="s900">900 ({{ counts.s900 }})</button>
+    </div>
+  </div>
+  <div class="top-row" style="margin-top: 6px;">
+    <span class="filter-label">熟悉度</span>
+    <div class="tier-filter level-filter">
+      <button class="active" data-level="all">All</button>
+      <button data-level="new">New<span class="lc" id="lc-new">0</span></button>
+      <button data-level="wrong">Blank ✗<span class="lc" id="lc-wrong">0</span></button>
+      <button data-level="hesitant">Uncertain 🤔<span class="lc" id="lc-hesitant">0</span></button>
+      <button data-level="known">Known ✓<span class="lc" id="lc-known">0</span></button>
+    </div>
+  </div>
+  <div class="progress-row">
+    <span>Session</span>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width: 0%;"></div></div>
+    <span><b id="session-idx">0</b>/<b id="session-total">0</b> · Total known <b id="known-count">0</b>/{{ items|length }}</span>
+  </div>
+  <div class="nav-row" id="nav-row">
+    <button class="nav-btn" id="nav-prev" title="Previous (←)">◀ Prev</button>
+    <input type="range" id="nav-scrubber" min="0" max="0" value="0" title="Drag to jump to any word">
+    <button class="nav-btn" id="nav-next" title="Next (→)">Next ▶</button>
+  </div>
+</div>
+
+<div class="stage">
+  <!-- STUDY MODE -->
+  <section class="study-section" id="study-section">
+    <div class="study-empty" id="study-empty" hidden>
+      <div class="icon">🎉</div>
+      <h2>All known!</h2>
+      <p>目前的 Tier × 熟悉度篩選沒有符合的單字。換一個篩選條件試試。</p>
+    </div>
+    <div class="study-card" id="study-card">
+      <div class="tier-badge" id="tier-badge"></div>
+      <div class="word" id="word"></div>
+      <div class="pos" id="pos"></div>
+      <div class="audio-btns" id="audio-btns">
+        <button data-tag="m">👨</button>
+        <button data-tag="f">👩</button>
+      </div>
+      <div id="meaning-slot"></div>
+      <div class="kbd-hint" id="kbd-hint"><kbd>Space</kbd> 顯示答案</div>
+    </div>
+  </section>
+
+  <!-- SPEAK MODE (retrieval-first) -->
+  <section class="speak-section" id="speak-section">
+    <div class="study-empty" id="speak-empty" hidden>
+      <div class="icon">🎉</div>
+      <h2>All spoken!</h2>
+      <p>目前的 Tier × 熟悉度篩選沒有符合的單字。換一個篩選條件試試。</p>
+    </div>
+    <div class="speak-card" id="speak-card">
+      <div class="tier-badge" id="speak-tier-badge"></div>
+      <div class="cue-zh" id="speak-cue-zh"></div>
+      <div class="cue-pos" id="speak-cue-pos"></div>
+      <div id="speak-slot"></div>
+      <div class="kbd-hint" id="speak-hint"></div>
+    </div>
+  </section>
+
+  <!-- LOOKUP MODE -->
+  <section class="lookup-section">
+    <div class="toolbar">
+      <input id="search" type="text" placeholder="Search EN or ZH...">
+      <span class="counter"><span id="visible-count">{{ items|length }}</span> / {{ items|length }}</span>
+      <span class="lookup-hint">💡 點任一列 → 跳到該字的字卡（Recognition 模式）</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>English</th>
+          <th style="width: 60px;">POS</th>
+          <th>Meaning</th>
+          <th style="width: 90px;">Tier</th>
+          <th style="width: 100px;">🔊 Audio</th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+        {% for it in items %}
+        <tr data-idx="{{ loop.index0 }}" data-tier="{{ it.tier_class }}" data-en="{{ it.en|lower }}" data-zh="{{ it.zh }}">
+          <td class="en">{{ it.en }}</td>
+          <td class="pos">{{ it.pos }}</td>
+          <td class="zh">{{ it.zh }}</td>
+          <td class="tier"><span class="badge {{ it.tier_class }}">{{ it.tier_zh }}</span></td>
+          <td class="audio">
+            <button data-audio="{{ it.audio_m }}" title="Male">♂</button>
+            <button data-audio="{{ it.audio_f }}" title="Female">♀</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+
+<audio id="player"></audio>
+
+<!-- Summary modal -->
+<div class="modal-overlay" id="summary-modal">
+  <div class="modal">
+    <h2>🎯 Session Done</h2>
+    <div class="sub">Your session stats</div>
+    <div class="stats-grid">
+      <div class="stat total"><div class="n" id="sum-total">0</div><div class="l">Total</div></div>
+      <div class="stat known"><div class="n" id="sum-known">0</div><div class="l">Known ✓</div></div>
+      <div class="stat hesitant"><div class="n" id="sum-hesitant">0</div><div class="l">Uncertain 🤔</div></div>
+      <div class="stat wrong"><div class="n" id="sum-wrong">0</div><div class="l">Blank ✗</div></div>
+    </div>
+    <div class="actions">
+      <button class="primary" id="restart-unknown">🔁 Redo Blank + Uncertain</button>
+      <button id="restart-all">Redo all</button>
+      <a href="index.html">Back to Day {{ '%02d' % day }}</a>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+const ITEMS = {{ items|tojson }};
+const DAY_KEY = 'ref-d{{ "%02d" % day }}';
+const player = document.getElementById('player');
+
+let mode = 'study';
+let currentTier = 'all';
+let currentLevels = new Set();   // familiarity filter; empty == all
+let queue = [];      // stable-ish array of item indexes for this session (can grow via spaced-repeat re-insertion)
+let position = 0;    // pointer into queue — lets Prev/Next/scrubber browse freely without consuming the queue
+let sessionAnswers = [];  // { idx, verdict }
+let revealed = false;
+
+// --- Storage helpers ---
+function keyKnown(idx) { return `${DAY_KEY}-known-${idx}`; }
+function keyLastVerdict(idx) { return `${DAY_KEY}-last-${idx}`; }
+function isKnown(idx) { return localStorage.getItem(keyKnown(idx)) === '1'; }
+function setKnown(idx, v) { localStorage.setItem(keyKnown(idx), v ? '1' : '0'); }
+function getLastVerdict(idx) { return localStorage.getItem(keyLastVerdict(idx)) || null; }
+function setLastVerdict(idx, v) { localStorage.setItem(keyLastVerdict(idx), v); }
+
+function countKnown() {
+  let n = 0;
+  for (let i = 0; i < ITEMS.length; i++) if (isKnown(i)) n++;
+  return n;
+}
+
+// --- Familiarity (independent of tier) ---
+// 'new' = never rated yet; otherwise the last verdict given.
+function levelOf(idx) { return getLastVerdict(idx) || 'new'; }
+
+// currentLevels empty == no restriction
+function matchesLevel(idx) {
+  return currentLevels.size === 0 || currentLevels.has(levelOf(idx));
+}
+
+function updateLevelCounts() {
+  const c = { new: 0, wrong: 0, hesitant: 0, known: 0 };
+  for (let i = 0; i < ITEMS.length; i++) {
+    if (currentTier !== 'all' && ITEMS[i].tier_class !== currentTier) continue;
+    c[levelOf(i)]++;
+  }
+  for (const k of ['new', 'wrong', 'hesitant', 'known']) {
+    const el = document.getElementById('lc-' + k);
+    if (el) el.textContent = c[k];
+  }
+}
+
+// --- Queue building ---
+function buildQueue() {
+  let candidates = ITEMS.map((_, i) => i);
+  if (currentTier !== 'all') {
+    candidates = candidates.filter(i => ITEMS[i].tier_class === currentTier);
+  }
+  candidates = candidates.filter(matchesLevel);
+  // Shuffle to prevent order memorization
+  for (let i = candidates.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+  }
+  queue = candidates;
+  position = 0;
+  sessionAnswers = [];
+  revealed = false;
+  speakRevealed = false;
+}
+
+// --- Audio ---
+function playAudio(src, btn) {
+  document.querySelectorAll('button.playing').forEach(b => b.classList.remove('playing'));
+  if (player.src.endsWith(src) && !player.paused) { player.pause(); return; }
+  player.src = src; player.play();
+  if (btn) { btn.classList.add('playing'); player.onended = () => btn.classList.remove('playing'); }
+}
+
+// --- Rendering ---
+function updateProgress() {
+  const total = queue.length;
+  document.getElementById('session-idx').textContent = total ? position + 1 : 0;
+  document.getElementById('session-total').textContent = total;
+  document.getElementById('known-count').textContent = countKnown();
+  const pct = total ? ((position + 1) / total) * 100 : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+
+  const prevBtn = document.getElementById('nav-prev');
+  const nextBtn = document.getElementById('nav-next');
+  const scrubber = document.getElementById('nav-scrubber');
+  prevBtn.disabled = position <= 0;
+  nextBtn.disabled = position >= queue.length - 1;
+  scrubber.max = Math.max(0, queue.length - 1);
+  scrubber.value = position;
+}
+
+function goPrev() {
+  if (position <= 0) return;
+  position--;
+  revealed = false; speakRevealed = false;
+  renderCurrent();
+}
+
+function goNext() {
+  if (position >= queue.length - 1) return;
+  position++;
+  revealed = false; speakRevealed = false;
+  renderCurrent();
+}
+
+function renderCurrent() {
+  if (mode === 'speak') { renderSpeak(); return; }
+  const card = document.getElementById('study-card');
+  const empty = document.getElementById('study-empty');
+  if (queue.length === 0 || position >= queue.length) {
+    card.hidden = true; empty.hidden = false;
+    updateProgress();
+    return;
+  }
+  card.hidden = false; empty.hidden = true;
+
+  const idx = queue[position];
+  const it = ITEMS[idx];
+  document.getElementById('tier-badge').className = 'tier-badge ' + it.tier_class;
+  document.getElementById('tier-badge').textContent = it.tier_zh;
+  document.getElementById('word').textContent = it.en;
+  document.getElementById('pos').textContent = it.pos || '';
+
+  // Wire audio buttons
+  const btns = document.querySelectorAll('#audio-btns button');
+  btns.forEach(b => {
+    b.classList.remove('playing');
+    const src = b.dataset.tag === 'm' ? it.audio_m : it.audio_f;
+    b.onclick = () => playAudio(src, b);
+  });
+
+  // Auto-play male on entry
+  setTimeout(() => playAudio(it.audio_m, btns[0]), 200);
+
+  revealed = false;
+  const slot = document.getElementById('meaning-slot');
+  const hint = document.getElementById('kbd-hint');
+  slot.innerHTML = `<button class="reveal-btn" id="reveal-btn">Show meaning ↓</button>`;
+  hint.innerHTML = '<kbd>Space</kbd> reveal';
+  document.getElementById('reveal-btn').onclick = revealAnswer;
+
+  updateProgress();
+}
+
+function revealAnswer() {
+  if (revealed) return;
+  revealed = true;
+  const idx = queue[position];
+  const it = ITEMS[idx];
+  const slot = document.getElementById('meaning-slot');
+  const hint = document.getElementById('kbd-hint');
+  slot.innerHTML = `
+    <div class="meaning">${escapeHtml(it.zh)}</div>
+    ${renderDiagramHtml(it.diagram)}
+    <div class="verdict-btns">
+      <button class="btn-wrong" data-v="wrong">Blank ✗<span class="num">1</span></button>
+      <button class="btn-hesitant" data-v="hesitant">Uncertain 🤔<span class="num">2</span></button>
+      <button class="btn-known" data-v="known">Known ✓<span class="num">3</span></button>
+    </div>`;
+  hint.innerHTML = '<kbd>1</kbd> Blank · <kbd>2</kbd> Uncertain · <kbd>3</kbd> Known';
+  slot.querySelectorAll('.verdict-btns button').forEach(b => {
+    b.onclick = () => handleVerdict(b.dataset.v);
+  });
+}
+
+// --- Speak mode (retrieval-first) ---
+let speakRevealed = false;
+
+function renderSpeak() {
+  const card = document.getElementById('speak-card');
+  const empty = document.getElementById('speak-empty');
+  if (queue.length === 0 || position >= queue.length) {
+    card.hidden = true; empty.hidden = false;
+    updateProgress();
+    return;
+  }
+  card.hidden = false; empty.hidden = true;
+
+  const idx = queue[position];
+  const it = ITEMS[idx];
+  document.getElementById('speak-tier-badge').className = 'tier-badge ' + it.tier_class;
+  document.getElementById('speak-tier-badge').textContent = it.tier_zh;
+  document.getElementById('speak-cue-zh').textContent = it.zh;
+  document.getElementById('speak-cue-pos').textContent = it.pos || '';
+
+  speakRevealed = false;
+  const slot = document.getElementById('speak-slot');
+  const hint = document.getElementById('speak-hint');
+  slot.innerHTML = `
+    <div class="cue-prompt">
+      <span class="big">🎤 Say the English aloud</span>
+      <span>（recall from memory, then reveal)</span>
+    </div>
+    <button class="said-btn" id="said-btn">Done speaking ↓</button>`;
+  hint.innerHTML = '<kbd>Space</kbd> reveal';
+  document.getElementById('said-btn').onclick = speakReveal;
+  updateProgress();
+}
+
+function speakReveal() {
+  if (speakRevealed || queue.length === 0) return;
+  speakRevealed = true;
+  const idx = queue[position];
+  const it = ITEMS[idx];
+  const slot = document.getElementById('speak-slot');
+  const hint = document.getElementById('speak-hint');
+  slot.innerHTML = `
+    <div class="reveal-en">${escapeHtml(it.en)}</div>
+    <div class="reveal-zh">${escapeHtml(it.zh)}</div>
+    ${renderDiagramHtml(it.diagram)}
+    <div class="reveal-audio">
+      <button data-tag="m">▶ 👨</button>
+      <button data-tag="f">▶ 👩</button>
+    </div>
+    <div class="self-check-label">How did you do?</div>
+    <div class="verdict-btns">
+      <button class="btn-wrong" data-v="wrong">Blank<span class="num">1</span></button>
+      <button class="btn-hesitant" data-v="hesitant">Struggled<span class="num">2</span></button>
+      <button class="btn-known" data-v="known">Fluent ✓<span class="num">3</span></button>
+    </div>`;
+  hint.innerHTML = '<kbd>1</kbd> Blank · <kbd>2</kbd> Struggled · <kbd>3</kbd> Fluent';
+  // Wire audio buttons
+  const btns = slot.querySelectorAll('.reveal-audio button');
+  btns.forEach(b => {
+    const src = b.dataset.tag === 'm' ? it.audio_m : it.audio_f;
+    b.onclick = () => playAudio(src, b);
+  });
+  // Auto-play native (male primary) for immediate correction
+  setTimeout(() => playAudio(it.audio_m, btns[0]), 150);
+  // Wire verdict buttons
+  slot.querySelectorAll('.verdict-btns button').forEach(b => {
+    b.onclick = () => handleVerdict(b.dataset.v);
+  });
+}
+
+function handleVerdict(v) {
+  const idx = queue[position];
+  const existing = sessionAnswers.findIndex(a => a.idx === idx);
+  if (existing !== -1) { sessionAnswers[existing].verdict = v; }
+  else { sessionAnswers.push({ idx, verdict: v }); }
+  setLastVerdict(idx, v);
+  updateLevelCounts();
+  if (v === 'known') {
+    setKnown(idx, true);
+  } else {
+    setKnown(idx, false);
+    if (existing === -1) {
+      // first time marked wrong/hesitant this session — schedule a nearby repeat
+      const gap = v === 'hesitant' ? 10 : 3;
+      const insertAt = Math.min(position + gap, queue.length);
+      queue.splice(insertAt, 0, idx);
+    }
+  }
+  if (position < queue.length - 1) {
+    position++;
+    revealed = false; speakRevealed = false;
+    renderCurrent();
+  } else {
+    showSummary();
+  }
+}
+
+function showSummary() {
+  const total = sessionAnswers.length;
+  const known = sessionAnswers.filter(a => a.verdict === 'known').length;
+  const hesitant = sessionAnswers.filter(a => a.verdict === 'hesitant').length;
+  const wrong = sessionAnswers.filter(a => a.verdict === 'wrong').length;
+  document.getElementById('sum-total').textContent = total;
+  document.getElementById('sum-known').textContent = known;
+  document.getElementById('sum-hesitant').textContent = hesitant;
+  document.getElementById('sum-wrong').textContent = wrong;
+  document.getElementById('summary-modal').classList.add('show');
+}
+
+// --- Mode toggle ---
+document.querySelectorAll('.mode-toggle button').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('.mode-toggle button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    mode = b.dataset.mode;
+    document.body.className = 'mode-' + mode;
+    // re-apply the active filters so every mode shows the same word set
+    if (mode === 'study' || mode === 'speak') { buildQueue(); renderCurrent(); }
+    else { applyLookupFilter(); }
+  };
+});
+
+// --- Filters ---
+function applyFilters() {
+  updateLevelCounts();
+  if (mode === 'study' || mode === 'speak') {
+    buildQueue(); renderCurrent();
+  } else {
+    applyLookupFilter();
+  }
+}
+
+document.querySelectorAll('.tier-filter:not(.level-filter) button').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('.tier-filter:not(.level-filter) button')
+      .forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    currentTier = b.dataset.tier;
+    applyFilters();
+  };
+});
+
+// Familiarity is multi-select: pick any combination (e.g. Blank + Uncertain).
+// "All" clears the selection, and an empty selection falls back to "All".
+document.querySelectorAll('.level-filter button').forEach(b => {
+  b.onclick = () => {
+    const lv = b.dataset.level;
+    if (lv === 'all') {
+      currentLevels.clear();
+    } else if (currentLevels.has(lv)) {
+      currentLevels.delete(lv);
+    } else {
+      currentLevels.add(lv);
+    }
+    document.querySelectorAll('.level-filter button').forEach(x => {
+      const k = x.dataset.level;
+      x.classList.toggle('active',
+        k === 'all' ? currentLevels.size === 0 : currentLevels.has(k));
+    });
+    applyFilters();
+  };
+});
+
+// --- Lookup mode ---
+const rows = Array.from(document.querySelectorAll('#tbody tr'));
+const searchInput = document.getElementById('search');
+const visibleCount = document.getElementById('visible-count');
+
+function applyLookupFilter() {
+  const q = searchInput.value.trim().toLowerCase();
+  let visible = 0;
+  rows.forEach(r => {
+    const tier = r.dataset.tier;
+    const en = r.dataset.en;
+    const zh = r.dataset.zh;
+    const idx = parseInt(r.dataset.idx);
+    let show = (currentTier === 'all') || (tier === currentTier);
+    if (show) show = matchesLevel(idx);
+    if (show && q) {
+      show = en.includes(q) || zh.includes(q);
+    }
+    r.classList.toggle('hidden', !show);
+    r.classList.toggle('known-row', isKnown(idx));
+    if (show) visible++;
+  });
+  visibleCount.textContent = visible;
+}
+searchInput.addEventListener('input', applyLookupFilter);
+document.querySelectorAll('td.audio button[data-audio]').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    playAudio(btn.dataset.audio, btn);
+  });
+});
+
+// Click any row to jump straight to that word's flashcard in Recognition mode
+rows.forEach(r => {
+  r.addEventListener('click', () => jumpToWord(parseInt(r.dataset.idx), 'study'));
+});
+
+// --- Jump-to-word (from Lookup) ---
+function jumpToWord(idx, targetMode) {
+  mode = targetMode;
+  document.querySelectorAll('.mode-toggle button').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  document.body.className = 'mode-' + mode;
+  if (!queue.length) buildQueue();
+  queue = queue.filter(i => i !== idx);
+  queue.splice(position, 0, idx);
+  revealed = false; speakRevealed = false;
+  renderCurrent();
+}
+
+// --- Summary modal actions ---
+document.getElementById('restart-unknown').onclick = () => {
+  document.getElementById('summary-modal').classList.remove('show');
+  // Rebuild queue with only wrong/hesitant from this session
+  const wrong = sessionAnswers.filter(a => a.verdict !== 'known').map(a => a.idx);
+  for (let i = wrong.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [wrong[i], wrong[j]] = [wrong[j], wrong[i]];
+  }
+  queue = wrong;
+  position = 0;
+  sessionAnswers = [];
+  revealed = false; speakRevealed = false;
+  renderCurrent();
+};
+document.getElementById('restart-all').onclick = () => {
+  document.getElementById('summary-modal').classList.remove('show');
+  updateLevelCounts();
+  buildQueue();
+  renderCurrent();
+};
+
+// --- Prev / Next / scrubber (free browsing, independent of answering) ---
+document.getElementById('nav-prev').onclick = goPrev;
+document.getElementById('nav-next').onclick = goNext;
+document.getElementById('nav-scrubber').addEventListener('input', (e) => {
+  position = Math.min(parseInt(e.target.value, 10) || 0, Math.max(0, queue.length - 1));
+  revealed = false; speakRevealed = false;
+  renderCurrent();
+});
+
+// --- Keyboard ---
+document.addEventListener('keydown', e => {
+  if (document.getElementById('summary-modal').classList.contains('show')) return;
+  const inInput = e.target.tagName === 'INPUT';
+  if (inInput) return;
+  if (mode === 'lookup' || queue.length === 0) return;
+
+  if (e.key === 'ArrowLeft') { e.preventDefault(); goPrev(); return; }
+  if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); return; }
+
+  const isReveal = (mode === 'study' && revealed) || (mode === 'speak' && speakRevealed);
+  const canReveal = (mode === 'study' && !revealed) || (mode === 'speak' && !speakRevealed);
+
+  if ((e.key === ' ' || e.key === 'ArrowDown' || e.key === 'Enter') && canReveal) {
+    e.preventDefault();
+    if (mode === 'study') revealAnswer();
+    else if (mode === 'speak') speakReveal();
+  } else if (isReveal) {
+    if (e.key === '1') { e.preventDefault(); handleVerdict('wrong'); }
+    else if (e.key === '2') { e.preventDefault(); handleVerdict('hesitant'); }
+    else if (e.key === '3') { e.preventDefault(); handleVerdict('known'); }
+  }
+});
+
+// --- Utils ---
+function escapeHtml(s) { return (s || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+// Renders an optional `diagram:` block attached to a supplementary vocab item.
+// Primary form is `{ ascii, mnemonic }` — plain monospace concept art. Legacy
+// CSS-box forms (flow | ladder | category | contrast) are still supported for
+// any older data. Returns '' when the item has none — most words won't.
+function renderDiagramHtml(d) {
+  if (!d) return '';
+  if (d.ascii) {
+    const caption = d.mnemonic ? `<div class="wd-ascii-caption">${escapeHtml(d.mnemonic)}</div>` : '';
+    return `<div class="word-diagram"><pre class="wd-ascii">${escapeHtml(d.ascii)}</pre>${caption}</div>`;
+  }
+  if (d.type === 'flow') {
+    const nodes = (d.nodes || []).map((n, i) => {
+      const node = `<div class="wd-node${n.emphasis ? ' wd-emphasis' : ''}">` +
+        (n.icon ? `<span class="wd-icon">${escapeHtml(n.icon)}</span>` : '') +
+        `<span class="wd-label">${escapeHtml(n.label)}</span>` +
+        (n.note ? `<span class="wd-note">${escapeHtml(n.note)}</span>` : '') +
+        `</div>`;
+      const arrow = i < d.nodes.length - 1 ? `<div class="wd-arrow">▾</div>` : '';
+      return node + arrow;
+    }).join('');
+    return `<div class="word-diagram"><div class="wd-flow">${nodes}</div></div>`;
+  }
+  if (d.type === 'ladder') {
+    const rungs = (d.nodes || []).map((n, i) => `
+      <div class="wd-rung wd-r${Math.min(i, 3)}${n.emphasis ? ' wd-emphasis' : ''}">
+        <div class="wd-bar">${escapeHtml(n.label)}</div>
+      </div>`).join('');
+    return `<div class="word-diagram"><div class="wd-ladder">${rungs}</div></div>`;
+  }
+  if (d.type === 'category') {
+    const header = d.header
+      ? `<div class="wd-header">${d.icon ? escapeHtml(d.icon) + ' ' : ''}${escapeHtml(d.header)}</div>` : '';
+    const items = (d.items || []).map(it => `
+      <div class="wd-group${it.emphasis ? ' wd-emphasis' : ''}">
+        ${it.icon ? `<span class="wd-gicon">${escapeHtml(it.icon)}</span>` : ''}
+        <div><div class="wd-gword">${escapeHtml(it.word)}</div>${it.note ? `<div class="wd-gnote">${escapeHtml(it.note)}</div>` : ''}</div>
+      </div>`).join('');
+    return `<div class="word-diagram">${header}<div class="wd-category">${items}</div></div>`;
+  }
+  if (d.type === 'contrast') {
+    const sides = (d.sides || []).map(s =>
+      `<div class="wd-vs-side${s.emphasis ? ' wd-emphasis' : ''}${s.muted ? ' wd-vs-muted' : ''}">
+        <div class="wd-vs-word">${escapeHtml(s.word)}</div>
+        ${s.note ? `<div class="wd-vs-note">${escapeHtml(s.note)}</div>` : ''}
+      </div>`
+    ).join(`<div class="wd-vs-divider">${escapeHtml(d.divider || '≠')}</div>`);
+    return `<div class="word-diagram"><div class="wd-contrast">${sides}</div></div>`;
+  }
+  return '';
+}
+
+// --- Init ---
+updateLevelCounts();
+buildQueue();
+renderCurrent();
+applyLookupFilter();
+</script>
+</body>
+</html>

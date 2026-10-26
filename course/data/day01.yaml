@@ -1,0 +1,162 @@
+# SAMPLE DAY written for this repo (not taken from any book).
+# Ten everyday office chunks, two Parts, one Part 4-style talk and one Part 3-style dialogue.
+#   python course/scripts/validate_day.py 1
+#   python course/scripts/build_day.py 1 --pages-only   # HTML only, offline
+#   python course/scripts/build_day.py 1                # + neural TTS audio + Anki deck
+
+day: 1
+theme_zh: "辦公室日常"
+theme_en: "Office Life"
+day_icon: "🗂️"
+book_ref: "Sample day · Office Life"
+force_parts: 2
+
+parts:
+  - { icon: "📅", name: "Planning The Week", color: "#4a6fa5" }
+  - { icon: "📦", name: "Getting It Done", color: "#c07030" }
+
+mini_story: ""
+story_chunks: []
+
+stories:
+  - id: A
+    format: monologue
+    title: "Monday Team Update"
+    text: |
+      Good morning, everyone. Before we start, a quick update on this week's schedule.
+      We have moved the client meeting to Thursday, so please check your calendar.
+      The deadline for the sales report is still Friday at noon, and I would like
+      every team to submit its numbers by Wednesday so we have time to review them.
+      Finance has already approved the new budget for the spring campaign, which means
+      we can finally book the venue. If you need help, ask a colleague first, and if
+      you are still stuck, my door is open all week. Thanks, and let's have a good one.
+    story_chunks: ["schedule", "client meeting", "deadline", "submit its numbers", "approved the new budget", "ask a colleague"]
+    questions:
+      - { q: "What is the talk mainly about?", options: ["Plans for the week", "A new hiring policy", "A product launch", "An office move"], correct: 0, type: main_idea }
+      - { q: "When is the client meeting now?", options: ["Thursday", "Monday", "Wednesday", "Friday"], correct: 0, type: detail }
+      - { q: "When is the sales report due?", options: ["Friday at noon", "Wednesday morning", "Thursday evening", "Next Monday"], correct: 0, type: detail }
+      - { q: "Why should teams send numbers by Wednesday?", options: ["To leave time for review", "Because the office closes early", "Because finance asked for it", "To prepare a press release"], correct: 0, type: inference }
+      - { q: "What has finance approved?", options: ["The new budget", "A new hire", "A longer deadline", "A team trip"], correct: 0, type: detail }
+      - { q: "What does the speaker suggest when someone needs help?", options: ["Ask a colleague first", "Email the client", "Wait until Friday", "Call finance"], correct: 0, type: inference }
+
+  - id: B
+    format: dialogue
+    title: "The Missing Package"
+    turns:
+      - { speaker: "Tom", voice: m, text: "Hi Mia, is the meeting room available this afternoon?" }
+      - { speaker: "Mia", voice: f, text: "It's free after two. Are you meeting the client?" }
+      - { speaker: "Tom", voice: m, text: "Yes, and I need the samples. They should be delivered today." }
+      - { speaker: "Mia", voice: f, text: "A package was delivered to the front desk this morning. It might be yours." }
+      - { speaker: "Tom", voice: m, text: "Great. Could you also review my slides before lunch?" }
+      - { speaker: "Mia", voice: f, text: "Sure. Send them over and I'll take a look." }
+    story_chunks: ["available this afternoon", "delivered to the front desk", "review my slides"]
+    questions:
+      - { q: "What does Tom want to use?", options: ["The meeting room", "Mia's laptop", "The front desk", "A company car"], correct: 0, type: main_idea }
+      - { q: "When is the room free?", options: ["After two", "Before lunch", "All morning", "Tomorrow"], correct: 0, type: detail }
+      - { q: "Who is Tom meeting?", options: ["A client", "His manager", "A new hire", "A supplier"], correct: 0, type: detail }
+      - { q: "Where might Tom's package be?", options: ["At the front desk", "In the meeting room", "At the post office", "In Mia's office"], correct: 0, type: detail }
+      - { q: "What will Mia probably do next?", options: ["Look at Tom's slides", "Call the client", "Book another room", "Go to lunch"], correct: 0, type: inference }
+      - { q: "What is in the package, most likely?", options: ["Samples for the meeting", "Office supplies", "Lunch", "A new phone"], correct: 0, type: inference }
+
+chunks:
+  - id: "01"
+    chunk: "schedule a meeting"
+    meaning_zh: "安排會議"
+    example: "Let's schedule a meeting for Tuesday morning."
+    example_cloze: "Let's ______ for Tuesday morning."
+    example_zh: "我們把會議安排在星期二早上吧。"
+    life_scenario: "跟同事約時間討論專案時"
+    family: "schedule (n./v.) / reschedule (v.)"
+    grammar: "`schedule` + N + **for** + 時間"
+  - id: "02"
+    chunk: "meet the deadline"
+    meaning_zh: "趕上截止期限"
+    example: "We worked late to meet the deadline."
+    example_cloze: "We worked late to ______."
+    example_zh: "我們加班以趕上截止期限。"
+    life_scenario: "專案快到期、跟主管回報進度時"
+    family: "deadline (n.)"
+    grammar: "**meet / miss** the deadline"
+  - id: "03"
+    chunk: "ask a colleague"
+    meaning_zh: "請教同事"
+    example: "If you get stuck, ask a colleague for help."
+    example_cloze: "If you get stuck, ______ for help."
+    example_zh: "如果卡住了，就請同事幫忙。"
+    life_scenario: "新進員工不熟系統時"
+    family: "colleague (n.) / coworker (n.)"
+    grammar: "ask + 人 + **for** + N"
+  - id: "04"
+    chunk: "submit a report"
+    meaning_zh: "提交報告"
+    example: "Please submit a report by the end of the month."
+    example_cloze: "Please ______ by the end of the month."
+    example_zh: "請在月底前提交報告。"
+    life_scenario: "月底交費用報告或進度報告時"
+    family: "submit (v.) / submission (n.)"
+    grammar: "submit A **to** B"
+  - id: "05"
+    chunk: "approve the budget"
+    meaning_zh: "批准預算"
+    example: "The manager approved the budget yesterday."
+    example_cloze: "The manager ______ yesterday."
+    example_zh: "經理昨天批准了預算。"
+    life_scenario: "等主管核准採購或活動經費時"
+    family: "approve (v.) / approval (n.)"
+    grammar: "approve + N；approve **of** + N（贊成）"
+  - id: "06"
+    chunk: "stay within the budget"
+    meaning_zh: "控制在預算內"
+    example: "We need to stay within the budget this quarter."
+    example_cloze: "We need to ______ this quarter."
+    example_zh: "這一季我們必須控制在預算內。"
+    life_scenario: "規劃活動、挑選供應商時"
+    family: "budget (n./v.)"
+    grammar: "stay **within** / go **over** the budget"
+  - id: "07"
+    chunk: "meet a client"
+    meaning_zh: "跟客戶見面"
+    example: "I have to meet a client at three."
+    example_cloze: "I have to ______ at three."
+    example_zh: "我三點要跟客戶見面。"
+    life_scenario: "安排外出拜訪或視訊會議時"
+    family: "client (n.) / customer (n.)"
+    grammar: null
+  - id: "08"
+    chunk: "review a draft"
+    meaning_zh: "審閱草稿"
+    example: "Could you review a draft for me before lunch?"
+    example_cloze: "Could you ______ for me before lunch?"
+    example_zh: "你可以在午餐前幫我看一下草稿嗎？"
+    life_scenario: "寄出重要 email 或簡報前請人幫忙看"
+    family: "review (v./n.)"
+    grammar: null
+  - id: "09"
+    chunk: "deliver a package"
+    meaning_zh: "遞送包裹"
+    example: "The courier will deliver a package to the front desk."
+    example_cloze: "The courier will ______ to the front desk."
+    example_zh: "快遞員會把包裹送到櫃台。"
+    life_scenario: "等樣品或文件送到公司時"
+    family: "deliver (v.) / delivery (n.)"
+    grammar: "deliver A **to** B"
+  - id: "10"
+    chunk: "be available this afternoon"
+    meaning_zh: "今天下午有空"
+    example: "Are you available this afternoon for a quick call?"
+    example_cloze: "Are you ______ for a quick call?"
+    example_zh: "你今天下午有空講個簡短的電話嗎？"
+    life_scenario: "臨時要約人開會時"
+    family: "available (adj.) / availability (n.)"
+    grammar: "be available **for** + N / **to** V"
+
+supplementary:
+  basic:
+    - { en: "calendar", zh: "行事曆", pos: "n." }
+    - { en: "office", zh: "辦公室", pos: "n." }
+  score_800:
+    - { en: "agenda", zh: "議程", pos: "n." }
+    - { en: "attachment", zh: "附件", pos: "n." }
+    - { en: "reimburse", zh: "核銷，償還（費用）", pos: "v." }
+  score_900:
+    - { en: "itemize", zh: "逐項列出", pos: "v." }
