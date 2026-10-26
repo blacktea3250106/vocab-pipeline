@@ -52,7 +52,7 @@ comes from that sample, never from the book (see [Data and copyright](#data-and-
   </tr>
   <tr>
     <td>A synthetic page drawn by <code>samples/make_sample_pages.py</code> in a vocabulary-book layout.</td>
-    <td>Claude vision returns one JSON object per photo in the shape set by <code>extract/schema.mjs</code>, cached per image.</td>
+    <td>Per-image JSON in the shape set by <code>extract/schema.mjs</code>. The sample cache is hand-written so the demo runs offline; real runs write the same shape.</td>
     <td>Pages are merged, checked for gaps in headword numbers and written to <code>web/data/day01.js</code>.</td>
   </tr>
   <tr>
